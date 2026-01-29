@@ -1,0 +1,1 @@
+{"version":2,"defects":{"Tests\\Feature\\WaystoneTest::test_waystone_shows_only_shareable":7,"Tests\\Feature\\WaystoneTest::test_cannot_share_checkin_or_interaction":7},"times":{"Tests\\Feature\\WaystoneTest::test_waystone_shows_only_shareable":0.072,"Tests\\Feature\\WaystoneTest::test_cannot_share_checkin_or_interaction":0.005}}
