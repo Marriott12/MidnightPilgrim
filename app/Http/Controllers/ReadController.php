@@ -69,11 +69,12 @@ class ReadController extends Controller
         // Read from markdown storage
         $item = null;
 
-        if ($type === 'notes') {
+        // Map plural route type to singular content type
+        if ($type === 'notes' || $type === 'note') {
             $items = $this->ingestion->readVault();
-        } elseif ($type === 'quotes') {
+        } elseif ($type === 'quotes' || $type === 'quote') {
             $items = $this->ingestion->readQuotes();
-        } elseif ($type === 'thoughts') {
+        } elseif ($type === 'thoughts' || $type === 'thought') {
             $items = $this->ingestion->readThoughts();
         } else {
             abort(404);

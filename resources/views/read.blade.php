@@ -155,25 +155,39 @@
     </nav>
 
     <div class="container">
+        @php
+            $allCount = count($items ?? []);
+            $notesCount = collect($items ?? [])->where('type', 'note')->count();
+            $quotesCount = collect($items ?? [])->where('type', 'quote')->count();
+            $thoughtsCount = collect($items ?? [])->where('type', 'thought')->count();
+        @endphp
+        
         <div class="filter">
-            <button class="active" data-type="all">All <span style="opacity: 0.4;">1</span></button>
-            <button data-type="notes">Notes <span style="opacity: 0.4;">2</span></button>
-            <button data-type="quotes">Quotes <span style="opacity: 0.4;">3</span></button>
-            <button data-type="thoughts">Thoughts <span style="opacity: 0.4;">4</span></button>
+            <button class="active" data-type="all">All <span style="opacity: 0.4;">{{ $allCount }}</span></button>
+            <button data-type="note">Notes <span style="opacity: 0.4;">{{ $notesCount }}</span></button>
+            <button data-type="quote">Quotes <span style="opacity: 0.4;">{{ $quotesCount }}</span></button>
+            <button data-type="thought">Thoughts <span style="opacity: 0.4;">{{ $thoughtsCount }}</span></button>
             <span style="font-size: 0.8rem; color: #333; margin-left: auto;">j/k to browse</span>
         </div>
 
         <div id="content">
             @forelse($items ?? [] as $item)
-                <div class="item" data-type="{{ $item->type ?? 'note' }}">
+                <div class="item" data-type="{{ $item['type'] ?? 'note' }}">
                     <div class="item-meta">
-                        {{ $item->created_at?->format('M j, Y') ?? 'Recent' }} 
+                        {{ $item['date'] ?? 'Recent' }} 
                         &middot; 
-                        {{ ucfirst($item->type ?? 'note') }}
+                        {{ ucfirst($item['type'] ?? 'note') }}
                     </div>
                     <div class="item-body">
-                        <a href="/{{ $item->type ?? 'notes' }}/{{ $item->slug }}">
-                            {{ Str::limit($item->body ?? '', 200) }}
+                        @php
+                            // Map type to route type parameter
+                            $routeType = $item['type'] === 'note' ? 'notes' : ($item['type'] === 'quote' ? 'quotes' : 'thoughts');
+                        @endphp
+                        <a href="/view/{{ $routeType }}/{{ $item['slug'] ?? '' }}">
+                            @if(!empty($item['title']))
+                                <div style="font-weight: 400; color: #c4c4c4; margin-bottom: 0.5rem;">{{ $item['title'] }}</div>
+                            @endif
+                            <div style="color: #999;">{{ Str::limit($item['body'] ?? '', 150) }}</div>
                         </a>
                     </div>
                 </div>

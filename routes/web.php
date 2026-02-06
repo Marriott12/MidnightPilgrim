@@ -16,6 +16,9 @@ use App\Http\Controllers\WriteController;
 // Phase 2-5: Silence-first UI
 Route::get('/write', [WriteController::class, 'create'])->name('write');
 Route::post('/notes/store', [WriteController::class, 'store'])->name('notes.store');
+Route::get('/notes/{slug}/edit', [WriteController::class, 'edit'])->name('notes.edit');
+Route::put('/notes/{slug}', [WriteController::class, 'update'])->name('notes.update');
+Route::delete('/notes/{slug}', [WriteController::class, 'destroy'])->name('notes.destroy');
 Route::get('/read', [ReadController::class, 'index'])->name('read');
 Route::get('/adjacent-view', [ReadController::class, 'adjacent'])->name('adjacent');
 Route::get('/view/{type}/{slug}', [ReadController::class, 'show'])
@@ -92,5 +95,5 @@ Route::get('/share/{type}/{id}/confirm', [\App\Http\Controllers\ShareController:
 Route::post('/share/{type}/{id}', [\App\Http\Controllers\ShareController::class, 'makeShareable'])
     ->withoutMiddleware([
         \Illuminate\Session\Middleware\StartSession::class,
-        \App\Http\Middleware\VerifyCsrfToken::class,
+        \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
     ]);

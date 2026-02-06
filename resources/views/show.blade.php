@@ -98,6 +98,17 @@
     <div class="container">
         <div class="meta">
             {{ $item['date'] ?? 'Recent' }} &middot; {{ ucfirst($type) }}
+            
+            @if($type === 'notes')
+                <div style="float: right; display: flex; gap: 1rem;">
+                    <a href="/notes/{{ $item['slug'] }}/edit" style="color: #8b8baf; font-size: 0.85rem;">Edit</a>
+                    <form action="/notes/{{ $item['slug'] }}" method="POST" style="display: inline;" onsubmit="return confirm('Delete this note quietly?');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" style="background: none; border: none; color: #666; font-size: 0.85rem; cursor: pointer; padding: 0; font-family: inherit;">Delete</button>
+                    </form>
+                </div>
+            @endif
         </div>
 
         <div class="content">

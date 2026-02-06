@@ -12,6 +12,8 @@ use App\Services\ReferenceResolver;
 class AssistantService
 {
     protected SilencePolicy $policy;
+    protected MentalHealthCompanionService $mh;
+    protected ReferenceResolver $resolver;
 
     public function __construct()
     {

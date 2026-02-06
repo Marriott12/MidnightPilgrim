@@ -191,9 +191,14 @@ class MarkdownIngestionService
             $visibility = 'private'; // Invalid values default to private
         }
 
+        // Extract slug from filename (e.g., "2026-01-15--123456--my-note.md" -> "my-note")
+        $filename = basename($path, '.md');
+        $slug = preg_replace('/^\d{4}-\d{2}-\d{2}--\d+--/', '', $filename);
+        
         // Build read-only immutable object
         return [
             'path' => $path,
+            'slug' => $slug,
             'type' => $type ?? ($frontmatter['type'] ?? 'note'),
             'title' => $frontmatter['title'] ?? $this->extractTitle($body, $path),
             'tags' => $frontmatter['tags'] ?? [],
@@ -201,11 +206,28 @@ class MarkdownIngestionService
             'metadata' => $frontmatter,
             'body' => trim($body),
             'word_count' => str_word_count(strip_tags($body)),
+            'date' => $frontmatter['date'] ?? $frontmatter['created'] ?? $this->extractDateFromFilename($path),
             'created_at' => $frontmatter['date'] ?? $frontmatter['created'] ?? null,
             'modified_at' => $frontmatter['modified'] ?? null,
             // Read-only flag
             'readonly' => true,
         ];
+    }
+
+    /**
+     * Extract date from filename
+     * 
+     * @param string $path File path
+     * @return string|null Date string or null
+     */
+    protected function extractDateFromFilename(string $path): ?string
+    {
+        $filename = basename($path, '.md');
+        // Extract date from filename pattern: 2026-02-06--123456--slug.md
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $filename, $matches)) {
+            return $matches[1];
+        }
+        return null;
     }
 
     /**

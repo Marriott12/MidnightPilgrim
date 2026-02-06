@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Write &mdash; Midnight Pilgrim</title>
+    <title>{{ isset($isEditing) && $isEditing ? 'Edit' : 'Write' }} &mdash; Midnight Pilgrim</title>
     <link rel="manifest" href="/manifest.json">
     <style>
         * {
@@ -55,20 +55,33 @@
             width: 100%;
         }
 
-        /* Minimal textarea - like opening a notebook */
+        /* Minimal inputs - like opening a notebook */
+        input[type="text"],
         textarea {
             width: 100%;
-            min-height: 400px;
             background: transparent;
             border: none;
             color: #c4c4c4;
             font-family: inherit;
-            font-size: 1.05rem;
-            line-height: 1.7;
-            resize: vertical;
             outline: none;
         }
 
+        input[type="text"] {
+            font-size: 1.3rem;
+            font-weight: 300;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #1a1a1a;
+            margin-bottom: 1.5rem;
+        }
+
+        textarea {
+            min-height: 400px;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            resize: vertical;
+        }
+
+        input[type="text"]::placeholder,
         textarea::placeholder {
             color: #333;
         }
@@ -180,21 +193,39 @@
     </nav>
 
     <div class="container">
-        <form method="POST" action="/notes/store" aria-label="New note">
+        <form method="POST" action="{{ isset($isEditing) && $isEditing ? '/notes/' . $note->slug : '/notes/store' }}" aria-label="{{ isset($isEditing) && $isEditing ? 'Edit note' : 'New note' }}">
             @csrf
+            @if(isset($isEditing) && $isEditing)
+                @method('PUT')
+            @endif
+            
+            <label for="title" class="sr-only">Note title</label>
+            <input 
+                type="text"
+                id="title"
+                name="title" 
+                value="{{ $note->title ?? '' }}"
+                placeholder="Title (optional)"
+                aria-placeholder="Title (optional)"
+                tabindex="0"
+            >
+            
             <label for="body" class="sr-only">Write your note</label>
             <textarea 
                 id="body"
                 name="body" 
                 placeholder="Like opening a notebook at night..."
-                autofocus
                 aria-placeholder="Like opening a notebook at night"
                 tabindex="0"
-            ></textarea>
+            >{{ $body ?? '' }}</textarea>
 
             <div class="actions">
-                <button type="submit" class="primary">Save</button>
-                <button type="button" onclick="document.querySelector('textarea').value = ''">Clear</button>
+                <button type="submit" class="primary">{{ isset($isEditing) && $isEditing ? 'Update' : 'Save' }}</button>
+                @if(isset($isEditing) && $isEditing)
+                    <a href="/view/notes/{{ $note->slug }}" style="color: #666; text-decoration: none; padding: 0.6rem 1.2rem;">Cancel</a>
+                @else
+                    <button type="button" onclick="document.querySelector('textarea').value = ''; document.querySelector('#title').value = '';">Clear</button>
+                @endif
                 <span class="hint">Defaults to private. Mark quotes with &gt;</span>
                 <span class="hint" style="margin-left: 1rem; color: #333;">⌘S to save • ⌘K to clear</span>
             </div>
@@ -208,27 +239,42 @@
         }
 
         // Auto-save to localStorage (offline resilience)
+        const titleInput = document.querySelector('#title');
         const textarea = document.querySelector('#body');
-        const AUTOSAVE_KEY = 'midnight_pilgrim_draft';
+        const AUTOSAVE_KEY_TITLE = 'midnight_pilgrim_draft_title';
+        const AUTOSAVE_KEY_BODY = 'midnight_pilgrim_draft_body';
 
-        // Restore draft
-        const draft = localStorage.getItem(AUTOSAVE_KEY);
-        if (draft && !textarea.value) {
-            textarea.value = draft;
+        // Only restore draft if not editing
+        const isEditing = {{ isset($isEditing) && $isEditing ? 'true' : 'false' }};
+        if (!isEditing) {
+            const draftTitle = localStorage.getItem(AUTOSAVE_KEY_TITLE);
+            const draftBody = localStorage.getItem(AUTOSAVE_KEY_BODY);
+            if (draftTitle && !titleInput.value) {
+                titleInput.value = draftTitle;
+            }
+            if (draftBody && !textarea.value) {
+                textarea.value = draftBody;
+            }
         }
 
-        // Save draft on input (debounced)
+        // Save draft on input (debounced) - only when not editing
         let saveTimeout;
-        textarea.addEventListener('input', () => {
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => {
-                localStorage.setItem(AUTOSAVE_KEY, textarea.value);
-            }, 500);
-        });
+        const autosave = () => {
+            if (!isEditing) {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    localStorage.setItem(AUTOSAVE_KEY_TITLE, titleInput.value);
+                    localStorage.setItem(AUTOSAVE_KEY_BODY, textarea.value);
+                }, 500);
+            }
+        };
+        titleInput.addEventListener('input', autosave);
+        textarea.addEventListener('input', autosave);
 
         // Clear draft on submit
         document.querySelector('form').addEventListener('submit', () => {
-            localStorage.removeItem(AUTOSAVE_KEY);
+            localStorage.removeItem(AUTOSAVE_KEY_TITLE);
+            localStorage.removeItem(AUTOSAVE_KEY_BODY);
         });
 
         // Keyboard shortcut: Ctrl/Cmd+Enter to submit
@@ -246,7 +292,7 @@
                 document.body.removeEventListener('keydown', onFirstTab);
             }
         });
-    </script>
+
         // Keyboard shortcuts (silence-friendly)
         document.addEventListener('keydown', (e) => {
             // Cmd/Ctrl + S to save (quiet, no alert)
@@ -258,13 +304,15 @@
             // Cmd/Ctrl + K to clear (quiet confirmation)
             if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                 e.preventDefault();
-                if (textarea.value.trim()) {
+                if (titleInput.value.trim() || textarea.value.trim()) {
                     // Quiet confirmation (no alert)
                     const clear = confirm('Clear this draft?');
                     if (clear) {
+                        titleInput.value = '';
                         textarea.value = '';
-                        localStorage.removeItem(AUTOSAVE_KEY);
-                        textarea.focus();
+                        localStorage.removeItem(AUTOSAVE_KEY_TITLE);
+                        localStorage.removeItem(AUTOSAVE_KEY_BODY);
+                        titleInput.focus();
                     }
                 }
             }
