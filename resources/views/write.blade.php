@@ -229,6 +229,9 @@
                 <span class="hint">Defaults to private. Mark quotes with &gt;</span>
                 <span class="hint" style="margin-left: 1rem; color: #333;">⌘S to save • ⌘K to clear</span>
             </div>
+            
+            <!-- Hidden field to pass edit state to JavaScript -->
+            <input type="hidden" id="is-editing" value="{{ isset($isEditing) && $isEditing ? '1' : '0' }}">
         </form>
     </div>
 
@@ -245,7 +248,7 @@
         const AUTOSAVE_KEY_BODY = 'midnight_pilgrim_draft_body';
 
         // Only restore draft if not editing
-        const isEditing = {{ isset($isEditing) && $isEditing ? 'true' : 'false' }};
+        const isEditing = document.getElementById('is-editing').value === '1';
         if (!isEditing) {
             const draftTitle = localStorage.getItem(AUTOSAVE_KEY_TITLE);
             const draftBody = localStorage.getItem(AUTOSAVE_KEY_BODY);
