@@ -64,8 +64,114 @@
             margin-bottom: 1rem;
         }
 
-        .back {
+        /* Markdown styling */
+        .content h1, .content h2, .content h3 {
+            color: #c4c4c4;
+            font-weight: 400;
+            margin: 2rem 0 1rem;
+        }
+
+        .content h1 { font-size: 1.8rem; }
+        .content h2 { font-size: 1.4rem; }
+        .content h3 { font-size: 1.2rem; }
+
+        .content blockquote {
+            border-left: 2px solid #333;
+            padding-left: 1rem;
+            margin: 1.5rem 0;
+            color: #8b8baf;
+            font-style: italic;
+        }
+
+        .content code {
+            background: #0f0f0f;
+            padding: 0.2rem 0.4rem;
+            border-radius: 2px;
+            font-size: 0.9em;
+        }
+
+        .content pre {
+            background: #0f0f0f;
+            padding: 1rem;
+            border-radius: 2px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .content ul, .content ol {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .content li {
+            margin: 0.5rem 0;
+        }
+
+        .content a {
+            color: #8b8baf;
+            text-decoration: none;
+            border-bottom: 1px solid #333;
+        }
+
+        .content a:hover {
+            border-bottom-color: #8b8baf;
+        }
+
+        .content .wikilink {
+            color: #8b8baf;
+            border-bottom: 1px solid #333;
+        }
+
+        .content .wikilink:hover {
+            border-bottom-color: #8b8baf;
+        }
+
+        .content .wikilink-missing {
+            color: #555;
+            border-bottom: 1px dotted #333;
+            cursor: help;
+        }
+
+        .backlinks {
             margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid #1a1a1a;
+        }
+
+        .backlinks-title {
+            font-size: 0.85rem;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .backlinks-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .backlinks-list li {
+            margin: 0.5rem 0;
+        }
+
+        .backlinks-list a {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .backlinks-list a:hover {
+            color: #8b8baf;
+        }
+
+        .back {
+            margin-top: 2rem;
             padding-top: 2rem;
             border-top: 1px solid #1a1a1a;
         }
@@ -102,6 +208,7 @@
             
             <?php if($type === 'notes'): ?>
                 <div style="float: right; display: flex; gap: 1rem;">
+                    <a href="/notes/<?php echo e($item['slug']); ?>/download" style="color: #666; font-size: 0.85rem;">Download</a>
                     <a href="/notes/<?php echo e($item['slug']); ?>/edit" style="color: #8b8baf; font-size: 0.85rem;">Edit</a>
                     <form action="/notes/<?php echo e($item['slug']); ?>" method="POST" style="display: inline;" onsubmit="return confirm('Delete this note quietly?');">
                         <?php echo csrf_field(); ?>
@@ -113,9 +220,20 @@
         </div>
 
         <div class="content">
-            <?php echo nl2br(e($item['body'])); ?>
+            <?php echo Str::markdown($item['body']); ?>
 
         </div>
+
+        <?php if(!empty($backlinks) && count($backlinks) > 0): ?>
+            <div class="backlinks">
+                <div class="backlinks-title">Linked from <?php echo e(count($backlinks)); ?> note<?php echo e(count($backlinks) !== 1 ? 's' : ''); ?></div>
+                <ul class="backlinks-list">
+                    <?php $__currentLoopData = $backlinks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $backlink): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <li><a href="/view/notes/<?php echo e($backlink['slug']); ?>"><?php echo e($backlink['title']); ?></a></li>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </ul>
+            </div>
+        <?php endif; ?>
 
         <div class="back">
             <a href="/read" style="color: #666;">&larr; Back to Read</a>

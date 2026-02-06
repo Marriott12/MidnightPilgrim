@@ -1,7 +1,8 @@
 ---
+title: Six Feet From Forever
 slug: the-magic-i-sought
 type: note
-date: 2026-02-06T10:01:15+00:00
+date: 2026-02-06T13:01:23+00:00
 visibility: private
 ---
 

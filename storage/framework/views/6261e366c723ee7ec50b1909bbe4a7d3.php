@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0a0a0a">
-    <title>Write &mdash; Midnight Pilgrim</title>
+    <title><?php echo e(isset($isEditing) && $isEditing ? 'Edit' : 'Write'); ?> &mdash; Midnight Pilgrim</title>
     <link rel="manifest" href="/manifest.json">
     <style>
         * {
@@ -49,10 +49,102 @@
 
         .container {
             flex: 1;
-            max-width: 680px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 3rem 1.5rem;
             width: 100%;
+            display: flex;
+            gap: 2rem;
+        }
+
+        .editor-pane {
+            flex: 1;
+        }
+
+        .preview-pane {
+            flex: 1;
+            border-left: 1px solid #1a1a1a;
+            padding-left: 2rem;
+            display: none;
+        }
+
+        .preview-pane.active {
+            display: block;
+        }
+
+        .preview-content {
+            color: #999;
+            font-size: 1.05rem;
+            line-height: 1.8;
+        }
+
+        .preview-content h1, .preview-content h2, .preview-content h3 {
+            color: #c4c4c4;
+            font-weight: 400;
+            margin: 2rem 0 1rem;
+        }
+
+        .preview-content h1 { font-size: 1.8rem; }
+        .preview-content h2 { font-size: 1.4rem; }
+        .preview-content h3 { font-size: 1.2rem; }
+
+        .preview-content blockquote {
+            border-left: 2px solid #333;
+            padding-left: 1rem;
+            margin: 1.5rem 0;
+            color: #8b8baf;
+            font-style: italic;
+        }
+
+        .preview-content code {
+            background: #0f0f0f;
+            padding: 0.2rem 0.4rem;
+            border-radius: 2px;
+            font-size: 0.9em;
+        }
+
+        .preview-content pre {
+            background: #0f0f0f;
+            padding: 1rem;
+            border-radius: 2px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .preview-content ul, .preview-content ol {
+            margin: 1rem 0;
+            padding-left: 2rem;
+        }
+
+        .preview-content li {
+            margin: 0.5rem 0;
+        }
+
+        .preview-content a {
+            color: #8b8baf;
+            text-decoration: none;
+            border-bottom: 1px solid #333;
+        }
+
+        .toggle-preview {
+            background: transparent;
+            border: 1px solid #333;
+            color: #666;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 2px;
+            margin-bottom: 1rem;
+        }
+
+        .toggle-preview:hover {
+            border-color: #666;
+            color: #999;
+        }
+
+        .toggle-preview.active {
+            border-color: #8b8baf;
+            color: #8b8baf;
         }
 
         /* Minimal inputs - like opening a notebook */
@@ -193,13 +285,21 @@
     </nav>
 
     <div class="container">
-        <form method="POST" action="/notes/store" aria-label="New note">
-            <?php echo csrf_field(); ?>
+        <div class="editor-pane">
+            <button type="button" class="toggle-preview" onclick="togglePreview()">Preview</button>
+            
+            <form method="POST" action="<?php echo e(isset($isEditing) && $isEditing ? '/notes/' . $note->slug : '/notes/store'); ?>" aria-label="<?php echo e(isset($isEditing) && $isEditing ? 'Edit note' : 'New note'); ?>">
+                <?php echo csrf_field(); ?>
+                <?php if(isset($isEditing) && $isEditing): ?>
+                <?php echo method_field('PUT'); ?>
+            <?php endif; ?>
+            
             <label for="title" class="sr-only">Note title</label>
             <input 
                 type="text"
                 id="title"
                 name="title" 
+                value="<?php echo e($note->title ?? ''); ?>"
                 placeholder="Title (optional)"
                 aria-placeholder="Title (optional)"
                 tabindex="0"
@@ -212,15 +312,34 @@
                 placeholder="Like opening a notebook at night..."
                 aria-placeholder="Like opening a notebook at night"
                 tabindex="0"
-            ></textarea>
+            ><?php echo e($body ?? ''); ?></textarea>
+
+            <div style="text-align: right; margin-top: 0.5rem; font-size: 0.8rem; color: #333;">
+                <span id="word-count">0 words</span> &middot; <span id="char-count">0 characters</span>
+            </div>
 
             <div class="actions">
-                <button type="submit" class="primary">Save</button>
-                <button type="button" onclick="document.querySelector('textarea').value = ''">Clear</button>
+                <button type="submit" class="primary"><?php echo e(isset($isEditing) && $isEditing ? 'Update' : 'Save'); ?></button>
+                <?php if(isset($isEditing) && $isEditing): ?>
+                    <a href="/view/notes/<?php echo e($note->slug); ?>" style="color: #666; text-decoration: none; padding: 0.6rem 1.2rem;">Cancel</a>
+                <?php else: ?>
+                    <button type="button" onclick="document.querySelector('textarea').value = ''; document.querySelector('#title').value = '';">Clear</button>
+                <?php endif; ?>
                 <span class="hint">Defaults to private. Mark quotes with &gt;</span>
                 <span class="hint" style="margin-left: 1rem; color: #333;">⌘S to save • ⌘K to clear</span>
             </div>
-        </form>
+            
+                <!-- Hidden field to pass edit state to JavaScript -->
+                <input type="hidden" id="is-editing" value="<?php echo e(isset($isEditing) && $isEditing ? '1' : '0'); ?>">
+            </form>
+        </div>
+        
+        <div class="preview-pane" id="preview-pane">
+            <div style="color: #555; font-size: 0.85rem; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Preview</div>
+            <div id="preview-content" class="preview-content">
+                <div style="color: #333; font-style: italic;">Start writing to see preview...</div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -235,24 +354,29 @@
         const AUTOSAVE_KEY_TITLE = 'midnight_pilgrim_draft_title';
         const AUTOSAVE_KEY_BODY = 'midnight_pilgrim_draft_body';
 
-        // Restore draft
-        const draftTitle = localStorage.getItem(AUTOSAVE_KEY_TITLE);
-        const draftBody = localStorage.getItem(AUTOSAVE_KEY_BODY);
-        if (draftTitle && !titleInput.value) {
-            titleInput.value = draftTitle;
-        }
-        if (draftBody && !textarea.value) {
-            textarea.value = draftBody;
+        // Only restore draft if not editing
+        const isEditing = document.getElementById('is-editing').value === '1';
+        if (!isEditing) {
+            const draftTitle = localStorage.getItem(AUTOSAVE_KEY_TITLE);
+            const draftBody = localStorage.getItem(AUTOSAVE_KEY_BODY);
+            if (draftTitle && !titleInput.value) {
+                titleInput.value = draftTitle;
+            }
+            if (draftBody && !textarea.value) {
+                textarea.value = draftBody;
+            }
         }
 
-        // Save draft on input (debounced)
+        // Save draft on input (debounced) - only when not editing
         let saveTimeout;
         const autosave = () => {
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => {
-                localStorage.setItem(AUTOSAVE_KEY_TITLE, titleInput.value);
-                localStorage.setItem(AUTOSAVE_KEY_BODY, textarea.value);
-            }, 500);
+            if (!isEditing) {
+                clearTimeout(saveTimeout);
+                saveTimeout = setTimeout(() => {
+                    localStorage.setItem(AUTOSAVE_KEY_TITLE, titleInput.value);
+                    localStorage.setItem(AUTOSAVE_KEY_BODY, textarea.value);
+                }, 500);
+            }
         };
         titleInput.addEventListener('input', autosave);
         textarea.addEventListener('input', autosave);
@@ -319,6 +443,73 @@
                 textarea.selectionStart = textarea.selectionEnd = start + 4;
             }
         });
+
+        // Markdown preview toggle
+        function togglePreview() {
+            const previewPane = document.getElementById('preview-pane');
+            const toggleBtn = document.querySelector('.toggle-preview');
+            
+            if (previewPane.classList.contains('active')) {
+                previewPane.classList.remove('active');
+                toggleBtn.classList.remove('active');
+            } else {
+                previewPane.classList.add('active');
+                toggleBtn.classList.add('active');
+                updatePreview();
+            }
+        }
+
+        function updatePreview() {
+            const previewPane = document.getElementById('preview-pane');
+            if (!previewPane.classList.contains('active')) return;
+            
+            const body = textarea.value;
+            const previewContent = document.getElementById('preview-content');
+            
+            if (!body.trim()) {
+                previewContent.innerHTML = '<div style="color: #333; font-style: italic;">Start writing to see preview...</div>';
+                return;
+            }
+            
+            // Send to backend for rendering
+            fetch('/api/preview', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('[name="_token"]').value
+                },
+                body: JSON.stringify({ content: body })
+            })
+            .then(res => res.json())
+            .then(data => {
+                previewContent.innerHTML = data.html;
+            })
+            .catch(() => {
+                // Fallback to simple line breaks
+                previewContent.innerHTML = body.replace(/\n/g, '<br>');
+            });
+        }
+
+        // Update preview on typing (debounced)
+        let previewTimeout;
+        textarea.addEventListener('input', () => {
+            clearTimeout(previewTimeout);
+            previewTimeout = setTimeout(updatePreview, 500);
+            updateWordCount();
+        });
+
+        // Word and character counter
+        function updateWordCount() {
+            const text = textarea.value;
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+            
+            document.getElementById('word-count').textContent = `${words} word${words !== 1 ? 's' : ''}`;
+            document.getElementById('char-count').textContent = `${chars} character${chars !== 1 ? 's' : ''}`;
+        }
+
+        // Initialize word count
+        updateWordCount();
     </script>
 </body>
 </html>

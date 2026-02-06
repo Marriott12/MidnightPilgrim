@@ -29,11 +29,6 @@ Route::get('/view/{type}/{slug}', [ReadController::class, 'show'])
     ->where('type', 'notes|quotes|thoughts')
     ->name('show');
 
-// Phase 6: Sit view (Mental Health Companion)
-Route::get('/sit', function () {
-    return view('sit');
-})->name('sit');
-
 // Existing routes (preserved)
 Route::get('/', function () {
     // simple entry that uses the layout and a single input
