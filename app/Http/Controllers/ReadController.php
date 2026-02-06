@@ -7,6 +7,8 @@ use App\Models\Quote;
 use App\Models\DailyThought;
 use App\Services\MarkdownIngestionService;
 use App\Services\AdjacencyEngine;
+use App\Services\QuoteEmergenceService;
+use App\Services\AdjacentThreadsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -103,7 +105,25 @@ class ReadController extends Controller
         if ($type === 'notes' && !empty($item['title'])) {
             $backlinks = $wikilinkService->findBacklinks($item['title']);
         }
+        
+        // Get adjacent threads (notes sharing words/time proximity)
+        $adjacent = [];
+        if ($type === 'notes') {
+            $adjacentService = app(AdjacentThreadsService::class);
+            $adjacent = $adjacentService->findAdjacent($slug, 5);
+        }
 
-        return view('show', compact('item', 'type', 'backlinks'));
+        return view('show', compact('item', 'type', 'backlinks', 'adjacent'));
+    }
+    
+    /**
+     * Show emergent quotes (repeated sentences across writings)
+     */
+    public function emergentQuotes()
+    {
+        $service = app(QuoteEmergenceService::class);
+        $emergent = $service->findRepeatedSentences(2); // Min 2 occurrences
+        
+        return view('emergent', compact('emergent'));
     }
 }

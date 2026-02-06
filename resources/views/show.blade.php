@@ -192,6 +192,7 @@
     <nav>
         <div>
             <a href="/" style="color: #999; font-weight: 500;">Midnight Pilgrim</a>
+            <span style="margin-left: 1.5rem; font-size: 0.85rem; color: #444;">{{ now()->format('F j') }}</span>
         </div>
         <div style="display: flex; gap: 1.5rem;">
             <a href="/write">Write</a>
@@ -228,6 +229,22 @@
                 <ul class="backlinks-list">
                     @foreach($backlinks as $backlink)
                         <li><a href="/view/notes/{{ $backlink['slug'] }}">{{ $backlink['title'] }}</a></li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+        
+        @if($type === 'notes' && !empty($adjacent) && count($adjacent) > 0)
+            <div class="backlinks">
+                <div class="backlinks-title">Adjacent Threads</div>
+                <ul class="backlinks-list">
+                    @foreach($adjacent as $thread)
+                        <li>
+                            <a href="/view/notes/{{ $thread['slug'] }}">{{ $thread['title'] }}</a>
+                            <span style="font-size: 0.8rem; color: #444; margin-left: 0.5rem;">
+                                ({{ count($thread['shared_words']) }} shared words, {{ $thread['days_apart'] }} days apart)
+                            </span>
+                        </li>
                     @endforeach
                 </ul>
             </div>

@@ -5,7 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Midnight Pilgrim</title>
         <link rel="manifest" href="/manifest.json">
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
         <meta name="theme-color" content="#0a0a0a">
+        <meta name="description" content="A quiet place for your thoughts. Silence-first, local-first, no tracking.">
         
         <style>
             /* Reset */
@@ -20,33 +22,51 @@
             body { 
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
                 background: #0a0a0a;
-                color: #d4d4d4;
-                line-height: 1.7;
+                color: #999;
+                line-height: 1.8;
                 font-weight: 300;
                 -webkit-font-smoothing: antialiased;
             }
             
             /* Typography */
-            h1, h2, h3 { font-weight: 300; line-height: 1.3; }
-            h1 { font-size: 2.5rem; letter-spacing: -0.02em; }
-            h2 { font-size: 1.25rem; letter-spacing: -0.01em; }
-            h3 { font-size: 1rem; }
+            h1, h2, h3 { font-weight: 300; line-height: 1.2; }
+            h1 { 
+                font-size: 2.5rem; 
+                letter-spacing: -0.02em; 
+                color: #c4c4c4;
+            }
+            h2 { 
+                font-size: 1.125rem; 
+                letter-spacing: -0.01em; 
+                color: #999;
+                font-weight: 300;
+            }
+            h3 { 
+                font-size: 1rem; 
+                color: #c4c4c4;
+                font-weight: 400;
+            }
             
-            p { color: #a3a3a3; }
+            p { color: #777; }
             a { color: inherit; text-decoration: none; }
+            
+            ::selection {
+                background: #222;
+                color: #eee;
+            }
             
             /* Layout */
             .container {
-                max-width: 42rem;
+                max-width: 40rem;
                 margin: 0 auto;
                 padding: 0 1.5rem;
             }
             
             .section {
-                padding: 4rem 0;
+                padding: 5rem 0;
             }
             
-            /* Hero */
+            /* Hero - Single focal point */
             .hero {
                 min-height: 100vh;
                 display: flex;
@@ -54,136 +74,139 @@
                 justify-content: center;
                 align-items: center;
                 text-align: center;
-                padding: 2rem 1.5rem;
+                padding: 3rem 1.5rem;
+            }
+            
+            .hero-content {
+                max-width: 28rem;
             }
             
             .hero h1 {
-                color: #f5f5f5;
-                margin-bottom: 1rem;
+                margin-bottom: 1.5rem;
             }
             
             .hero .tagline {
                 font-size: 1.125rem;
-                color: #d4d4d4;
-                margin-bottom: 0.75rem;
-                font-weight: 300;
+                color: #999;
+                margin-bottom: 2.5rem;
+                line-height: 1.6;
             }
             
             .hero .principles {
                 font-size: 0.75rem;
-                color: #737373;
+                color: #555;
                 letter-spacing: 0.1em;
                 text-transform: uppercase;
-                margin-bottom: 3rem;
+                margin-bottom: 3.5rem;
             }
             
-            .hero .principles::before {
-                content: '';
-                display: block;
-                width: 2rem;
+            /* Separator - Visual silence */
+            .separator {
+                width: 3rem;
                 height: 1px;
-                background: #404040;
-                margin: 2rem auto 1.5rem;
+                background: #262626;
+                margin: 2.5rem auto;
             }
             
-            /* Button */
+            /* Button - Restrained */
             .btn {
                 display: inline-block;
-                padding: 0.875rem 2.5rem;
+                padding: 0.875rem 2.75rem;
                 background: transparent;
-                border: 1px solid #525252;
-                color: #d4d4d4;
+                border: 1px solid #333;
+                color: #999;
                 font-size: 0.9375rem;
-                font-weight: 400;
+                font-weight: 300;
                 letter-spacing: 0.02em;
                 transition: all 0.3s ease;
                 cursor: pointer;
             }
             
             .btn:hover {
-                border-color: #8b8baf;
-                color: #f5f5f5;
-                background: rgba(139, 139, 175, 0.05);
+                border-color: #666;
+                color: #c4c4c4;
+                background: rgba(255, 255, 255, 0.02);
             }
             
-            /* What This Is */
+            /* What This Is - Calm explanation */
             .intro {
                 text-align: center;
-                max-width: 36rem;
-                margin: 0 auto 4rem;
+                max-width: 34rem;
+                margin: 0 auto 5rem;
             }
             
             .intro p {
                 font-size: 1rem;
-                line-height: 1.8;
-                color: #a3a3a3;
+                line-height: 1.9;
+                color: #777;
             }
             
-            /* Modes */
+            /* Modes - Not features, ways of being */
             .modes {
                 display: grid;
-                gap: 2rem;
-                margin-bottom: 4rem;
+                gap: 2.5rem;
+                margin-bottom: 3rem;
             }
             
             .mode {
-                border-left: 1px solid #262626;
-                padding-left: 1.5rem;
-                transition: border-color 0.3s ease;
+                padding: 1.5rem;
+                border: 1px solid #1a1a1a;
+                transition: all 0.3s ease;
             }
             
             .mode:hover {
-                border-left-color: #525252;
+                border-color: #262626;
+                background: rgba(255, 255, 255, 0.01);
             }
             
             .mode h3 {
-                color: #f5f5f5;
-                margin-bottom: 0.5rem;
+                margin-bottom: 0.75rem;
             }
             
             .mode p {
                 font-size: 0.9375rem;
                 line-height: 1.7;
+                color: #666;
             }
             
             .mode a {
                 display: block;
-                color: inherit;
             }
             
             .mode a:hover h3 {
                 color: #8b8baf;
             }
             
-            /* Philosophy */
+            /* Philosophy - Collapsible, quiet */
             .philosophy {
                 text-align: center;
-                padding: 3rem 0;
+                padding: 4rem 0;
                 border-top: 1px solid #1a1a1a;
             }
             
             .philosophy p {
                 font-size: 0.9375rem;
                 font-style: italic;
-                margin-bottom: 1rem;
-                color: #737373;
+                margin-bottom: 1.25rem;
+                color: #555;
             }
             
             .philosophy a {
                 font-size: 0.875rem;
-                color: #8b8baf;
+                color: #666;
                 border-bottom: 1px solid transparent;
-                transition: border-color 0.3s ease;
+                transition: all 0.3s ease;
             }
             
             .philosophy a:hover {
-                border-bottom-color: #8b8baf;
+                border-bottom-color: #666;
+                color: #8b8baf;
             }
             
-            /* Footer */
+            /* Footer - Entry points */
             .footer {
                 text-align: center;
-                padding: 3rem 0 4rem;
+                padding: 3rem 0 5rem;
             }
             
             .install-btn {
@@ -191,48 +214,78 @@
                 align-items: center;
                 gap: 0.5rem;
                 padding: 0.75rem 2rem;
-                background: #171717;
-                border: 1px solid #262626;
-                color: #a3a3a3;
+                background: #0f0f0f;
+                border: 1px solid #1a1a1a;
+                color: #666;
                 font-size: 0.875rem;
                 transition: all 0.3s ease;
                 margin-bottom: 1rem;
+                cursor: pointer;
+                font-family: inherit;
+                font-weight: 300;
             }
             
             .install-btn:hover {
-                border-color: #404040;
-                background: #1a1a1a;
+                border-color: #333;
+                color: #999;
+                background: #121212;
             }
             
             .install-btn.hidden {
                 display: none;
             }
             
-            /* Responsive */
+            .continue-link {
+                display: block;
+                margin-top: 1rem;
+                font-size: 0.875rem;
+                color: #444;
+            }
+            
+            .continue-link:hover {
+                color: #666;
+            }
+            
+            /* Responsive - Mobile first */
             @media (min-width: 48rem) {
-                h1 { font-size: 3.5rem; }
-                .hero .tagline { font-size: 1.375rem; }
-                .modes { grid-template-columns: repeat(2, 1fr); gap: 3rem 2rem; }
+                h1 { font-size: 3.25rem; }
+                .hero .tagline { font-size: 1.25rem; }
+                .modes { 
+                    grid-template-columns: repeat(2, 1fr); 
+                    gap: 2rem;
+                }
+                .section { padding: 6rem 0; }
             }
             
             @media (min-width: 64rem) {
-                .container { max-width: 48rem; }
+                h1 { font-size: 3.75rem; }
+                .container { max-width: 44rem; }
+            }
+            
+            /* Reduced motion preference */
+            @media (prefers-reduced-motion: reduce) {
+                * {
+                    animation: none !important;
+                    transition: none !important;
+                }
+                html { scroll-behavior: auto; }
             }
         </style>
     </head>
     
     <body>
-        <!-- Hero / Arrival -->
+        <!-- Hero / Arrival - Single focal point -->
         <section class="hero">
-            <div>
+            <div class="hero-content">
                 <h1>Midnight Pilgrim</h1>
-                <p class="tagline">A quiet place for your thoughts</p>
+                <p class="tagline">A quiet place for your thoughts.</p>
+                <div class="separator"></div>
                 <p class="principles">Silence-first · Local-first · No tracking</p>
                 <a href="/write" class="btn">Begin</a>
             </div>
         </section>
         
-        <!-- What This Is -->
+        <!-- What This Is - Explanation -->
         <section class="section">
             <div class="container">
                 <div class="intro">
@@ -243,7 +296,7 @@
                     </p>
                 </div>
                 
-                <!-- Modes of Presence -->
+                <!-- Modes of Presence - Not features -->
                 <div class="modes">
                     <div class="mode">
                         <a href="/write">
@@ -276,7 +329,7 @@
             </div>
         </section>
         
-        <!-- Philosophy -->
+        <!-- Philosophy - Collapsible by restraint -->
         <section class="philosophy">
             <div class="container">
                 <p>Your content lives in markdown files. The app is optional.</p>
@@ -287,16 +340,20 @@
         <!-- Footer / Entry -->
         <footer class="footer">
             <button id="installBtn" class="install-btn hidden">Install App</button>
+            <a href="/write" class="continue-link hidden" id="continueLink">Continue in browser</a>
         </footer>
         
         <script>
-            // PWA Install Prompt (no alerts, quiet behavior)
+            // PWA Install - Quiet, optional
             let deferredPrompt;
             
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 deferredPrompt = e;
-                document.getElementById('installBtn').classList.remove('hidden');
+                const installBtn = document.getElementById('installBtn');
+                const continueLink = document.getElementById('continueLink');
+                installBtn.classList.remove('hidden');
+                continueLink.classList.remove('hidden');
             });
 
             document.getElementById('installBtn').addEventListener('click', async () => {
@@ -306,8 +363,16 @@
                 deferredPrompt = null;
                 if (outcome === 'accepted') {
                     document.getElementById('installBtn').classList.add('hidden');
+                    document.getElementById('continueLink').classList.add('hidden');
                 }
             });
+            
+            // Service worker registration - Silent
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js').catch(() => {
+                    // Fail silently
+                });
+            }
         </script>
     </body>
 </html>

@@ -187,6 +187,38 @@
             gap: 1rem;
             align-items: center;
         }
+        
+        /* Silence mode: hide navigation and counts */
+        body.silence-mode nav,
+        body.silence-mode #word-count,
+        body.silence-mode #char-count,
+        body.silence-mode .actions {
+            display: none;
+        }
+        
+        body.silence-mode .container {
+            padding-top: 2rem;
+        }
+        
+        .silence-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: transparent;
+            border: 1px solid #222;
+            color: #444;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+            z-index: 1000;
+        }
+        
+        .silence-toggle:hover {
+            border-color: #333;
+            color: #666;
+        }
 
         button {
             background: transparent;
@@ -272,9 +304,12 @@
     </style>
 </head>
 <body>
+    <button class="silence-toggle" onclick="toggleSilence()">Silence</button>
+    
     <nav>
         <div>
             <a href="/" style="color: #999; font-weight: 500;">Midnight Pilgrim</a>
+            <span style="margin-left: 1.5rem; font-size: 0.85rem; color: #444;">{{ now()->format('F j') }}</span>
         </div>
         <div style="display: flex; gap: 1.5rem;">
             <a href="/write" class="current">Write</a>
@@ -510,6 +545,22 @@
 
         // Initialize word count
         updateWordCount();
+        
+        // Silence mode toggle
+        function toggleSilence() {
+            document.body.classList.toggle('silence-mode');
+            const isSilent = document.body.classList.contains('silence-mode');
+            localStorage.setItem('silenceMode', isSilent ? 'true' : 'false');
+            
+            // Update button text
+            document.querySelector('.silence-toggle').textContent = isSilent ? 'Return' : 'Silence';
+        }
+        
+        // Restore silence mode from localStorage
+        if (localStorage.getItem('silenceMode') === 'true') {
+            document.body.classList.add('silence-mode');
+            document.querySelector('.silence-toggle').textContent = 'Return';
+        }
     </script>
 </body>
 </html>

@@ -24,6 +24,7 @@ Route::delete('/notes/{slug}', [WriteController::class, 'destroy'])->name('notes
 Route::get('/notes/{slug}/download', [ExportController::class, 'downloadNote'])->name('notes.download');
 Route::get('/export/vault', [ExportController::class, 'exportVault'])->name('vault.export');
 Route::get('/read', [ReadController::class, 'index'])->name('read');
+Route::get('/emergent-quotes', [ReadController::class, 'emergentQuotes'])->name('emergent');
 Route::get('/adjacent-view', [ReadController::class, 'adjacent'])->name('adjacent');
 Route::get('/view/{type}/{slug}', [ReadController::class, 'show'])
     ->where('type', 'notes|quotes|thoughts')
@@ -31,8 +32,34 @@ Route::get('/view/{type}/{slug}', [ReadController::class, 'show'])
 
 // Existing routes (preserved)
 Route::get('/', function () {
-    // simple entry that uses the layout and a single input
-    return view('welcome');
+    // Soft re-entry: Show most recent note if exists
+    $vaultPath = storage_path('app/vault');
+    $lastNote = null;
+    
+    if (is_dir($vaultPath)) {
+        $files = collect(glob($vaultPath . '/*.md'))
+            ->map(function($file) {
+                return [
+                    'path' => $file,
+                    'time' => filemtime($file),
+                    'slug' => basename($file, '.md')
+                ];
+            })
+            ->sortByDesc('time')
+            ->first();
+            
+        if ($files) {
+            $content = file_get_contents($files['path']);
+            preg_match('/^#\s+(.+)$/m', $content, $matches);
+            $lastNote = [
+                'title' => $matches[1] ?? ucfirst(str_replace('-', ' ', $files['slug'])),
+                'slug' => $files['slug'],
+                'date' => date('F j', $files['time'])
+            ];
+        }
+    }
+    
+    return view('welcome', ['lastNote' => $lastNote]);
 });
 
 // Mirror lightweight API endpoints on web routes so app servers without

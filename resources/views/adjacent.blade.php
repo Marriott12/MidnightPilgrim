@@ -138,6 +138,7 @@
     <nav>
         <div>
             <a href="/" style="color: #999; font-weight: 500;">Midnight Pilgrim</a>
+            <span style="margin-left: 1.5rem; font-size: 0.85rem; color: #444;">{{ now()->format('F j') }}</span>
         </div>
         <div style="display: flex; gap: 1.5rem;">
             <a href="/write">Write</a>

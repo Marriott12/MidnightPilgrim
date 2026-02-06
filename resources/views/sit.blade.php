@@ -215,37 +215,37 @@
     </nav>
 
     <div class="container">
-        <!-- Initial State -->
+        <!-- Initial State - Choose mode -->
         <div id="initial-state">
             <div class="prompt">You don't have to do anything here.</div>
-            <div class="subtext">Two ways to sit</div>
+            <div class="subtext">Would you like company or quiet?</div>
             <div class="actions">
-                <button onclick="enterMode('reflective')">Reflective</button>
-                <button onclick="enterMode('checkin')">Brief Check-In</button>
+                <button onclick="enterMode('company')">Company</button>
+                <button onclick="enterMode('quiet')">Quiet</button>
             </div>
         </div>
-
-        <!-- Reflective Mode -->
-        <div id="reflective-mode" class="hidden">
-            <div class="prompt">What's present?</div>
-            <form id="reflective-form" onsubmit="handleReflective(event)">
+        
+        <!-- Quiet Mode (Isolation - no AI, just space) -->
+        <div id="quiet-mode" class="hidden">
+            <div class="prompt">This space is yours. Completely private.</div>
+            <div class="subtext">No AI. No storage. Just you.</div>
+            <form id="quiet-form" onsubmit="handleQuiet(event)">
                 <textarea 
                     name="input" 
-                    placeholder="You can write, or not."
+                    placeholder="Write anything. It stays here."
                     autofocus
                 ></textarea>
                 <div class="actions">
-                    <button type="submit">Send</button>
+                    <button type="button" onclick="clearQuiet()">Clear</button>
                     <button type="button" onclick="resetState()">Close</button>
                 </div>
             </form>
-            <div id="reflective-response" class="hidden"></div>
         </div>
-
-        <!-- Check-In Mode -->
-        <div id="checkin-mode" class="hidden">
+        
+        <!-- Company Mode (Existing check-in flow) -->
+        <div id="company-mode" class="hidden">
             <div class="prompt">How heavy did today feel?</div>
-            <div class="subtext">1 = light, 5 = heavy</div>
+            <div class="subtext">1 = light, 5 = heavy. Saved privately, never shared.</div>
             <form id="checkin-form" onsubmit="handleCheckin(event)">
                 <input 
                     type="number" 
@@ -281,8 +281,8 @@
 
         const states = {
             initial: document.getElementById('initial-state'),
-            reflective: document.getElementById('reflective-mode'),
-            checkin: document.getElementById('checkin-mode'),
+            quiet: document.getElementById('quiet-mode'),
+            company: document.getElementById('company-mode'),
             saved: document.getElementById('saved-state')
         };
 
@@ -298,10 +298,10 @@
         function enterMode(mode) {
             showState(mode);
             
-            if (mode === 'reflective') {
-                document.querySelector('#reflective-form textarea').focus();
-            } else if (mode === 'checkin') {
+            if (mode === 'company') {
                 document.querySelector('#checkin-form input').focus();
+            } else if (mode === 'quiet') {
+                document.querySelector('#quiet-form textarea').focus();
             }
         }
 
@@ -309,12 +309,22 @@
             showState('initial');
             
             // Clear forms
-            document.getElementById('reflective-form').reset();
+            document.getElementById('quiet-form').reset();
             document.getElementById('checkin-form').reset();
-            document.getElementById('reflective-response').classList.add('hidden');
+        }
+        
+        // Quiet mode: just a textarea, no storage, no AI
+        function handleQuiet(e) {
+            e.preventDefault();
+            // Intentionally do nothing - just provide space
+        }
+        
+        function clearQuiet() {
+            document.querySelector('#quiet-form textarea').value = '';
+            document.querySelector('#quiet-form textarea').focus();
         }
 
-        async function handleReflective(e) {
+        async function handleCheckin(e) {
             e.preventDefault();
             
             const input = e.target.input.value.trim();

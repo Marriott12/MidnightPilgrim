@@ -43,6 +43,31 @@
         nav .current {
             color: #c4c4c4;
         }
+        
+        /* Read-only mode toggle */
+        .readonly-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: transparent;
+            border: 1px solid #222;
+            color: #444;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+            z-index: 1000;
+        }
+        
+        .readonly-toggle:hover {
+            border-color: #333;
+            color: #666;
+        }
+        
+        body.readonly-mode .item-actions {
+            display: none;
+        }
 
         .container {
             max-width: 680px;
@@ -142,9 +167,12 @@
     </style>
 </head>
 <body>
+    <button class="readonly-toggle" onclick="toggleReadonly()">Read-only</button>
+    
     <nav>
         <div>
             <a href="/" style="color: #999; font-weight: 500;">Midnight Pilgrim</a>
+            <span style="margin-left: 1.5rem; font-size: 0.85rem; color: #444;">{{ now()->format('F j') }}</span>
         </div>
         <div style="display: flex; gap: 1.5rem;">
             <a href="/write">Write</a>
@@ -373,6 +401,22 @@
                 this.style.color = '#666';
             }
         });
+        
+        // Read-only mode toggle
+        function toggleReadonly() {
+            document.body.classList.toggle('readonly-mode');
+            const isReadonly = document.body.classList.contains('readonly-mode');
+            localStorage.setItem('readonlyMode', isReadonly ? 'true' : 'false');
+            
+            // Update button text
+            document.querySelector('.readonly-toggle').textContent = isReadonly ? 'Edit Mode' : 'Read-only';
+        }
+        
+        // Restore read-only mode from localStorage
+        if (localStorage.getItem('readonlyMode') === 'true') {
+            document.body.classList.add('readonly-mode');
+            document.querySelector('.readonly-toggle').textContent = 'Edit Mode';
+        }
     </script>
 </body>
 </html>
