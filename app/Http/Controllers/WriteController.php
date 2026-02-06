@@ -117,20 +117,33 @@ class WriteController extends Controller
      */
     public function edit(string $slug)
     {
-        $note = Note::where('slug', $slug)->firstOrFail();
+        // Use MarkdownIngestionService to find the note
+        $ingestionService = app(MarkdownIngestionService::class);
+        $items = $ingestionService->readVault();
         
-        // Read the full markdown file
-        $markdown = Storage::disk('local')->get($note->path);
-        
-        // Parse frontmatter to get full body
-        $body = $markdown;
-        if (preg_match('/^---\s*\n(.*?)\n---\s*\n(.*)$/s', $markdown, $matches)) {
-            $body = $matches[2];
+        $note = null;
+        foreach ($items as $item) {
+            if (($item['slug'] ?? '') === $slug) {
+                $note = $item;
+                break;
+            }
         }
         
+        if (!$note) {
+            abort(404, 'Note not found');
+        }
+        
+        // Create a simple object for compatibility with the view
+        $noteObject = (object) [
+            'slug' => $note['slug'],
+            'title' => $note['title'] ?? '',
+            'type' => $note['type'] ?? 'note',
+            'visibility' => $note['visibility'] ?? 'private',
+        ];
+        
         return view('write', [
-            'note' => $note,
-            'body' => $body,
+            'note' => $noteObject,
+            'body' => $note['body'] ?? '',
             'isEditing' => true
         ]);
     }
@@ -146,11 +159,24 @@ class WriteController extends Controller
             'visibility' => 'nullable|in:private,reflective,shareable',
         ]);
 
-        $note = Note::where('slug', $slug)->firstOrFail();
+        // Find the markdown file
+        $vaultFiles = Storage::files('vault');
+        $filePath = null;
+        
+        foreach ($vaultFiles as $file) {
+            if (basename($file, '.md') === $slug || strpos($file, "--{$slug}.md") !== false) {
+                $filePath = $file;
+                break;
+            }
+        }
+        
+        if (!$filePath) {
+            abort(404, 'Note file not found');
+        }
         
         $body = $request->input('body');
-        $type = $request->input('type', $note->type);
-        $visibility = $request->input('visibility', $note->visibility);
+        $type = $request->input('type', 'note');
+        $visibility = $request->input('visibility', 'private');
         
         // Use provided title or extract from first line
         $title = $request->input('title');
@@ -160,15 +186,18 @@ class WriteController extends Controller
 
         // Update markdown file with new content
         $markdown = $this->buildMarkdown($title, $slug, $type, $visibility, $body);
-        Storage::disk('local')->put($note->path, $markdown);
+        Storage::disk('local')->put($filePath, $markdown);
 
-        // Update database record
-        $note->update([
-            'title' => $title,
-            'type' => $type,
-            'body' => Str::limit($body, 500),
-            'visibility' => $visibility,
-        ]);
+        // Update database record if it exists
+        $note = Note::where('slug', $slug)->first();
+        if ($note) {
+            $note->update([
+                'title' => $title,
+                'type' => $type,
+                'body' => Str::limit($body, 500),
+                'visibility' => $visibility,
+            ]);
+        }
 
         return redirect('/view/notes/' . $slug)->with('success', 'Updated quietly.');
     }
@@ -178,13 +207,26 @@ class WriteController extends Controller
      */
     public function destroy(string $slug)
     {
-        $note = Note::where('slug', $slug)->firstOrFail();
+        // Find the markdown file
+        $vaultFiles = Storage::files('vault');
+        $filePath = null;
+        
+        foreach ($vaultFiles as $file) {
+            if (basename($file, '.md') === $slug || strpos($file, "--{$slug}.md") !== false) {
+                $filePath = $file;
+                break;
+            }
+        }
+        
+        if (!$filePath) {
+            abort(404, 'Note file not found');
+        }
         
         // Delete markdown file
-        Storage::disk('local')->delete($note->path);
+        Storage::disk('local')->delete($filePath);
         
-        // Delete database record
-        $note->delete();
+        // Delete database record if it exists
+        Note::where('slug', $slug)->delete();
 
         return redirect('/read')->with('success', 'Deleted quietly.');
     }
