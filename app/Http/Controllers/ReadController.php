@@ -92,6 +92,18 @@ class ReadController extends Controller
             abort(404);
         }
 
-        return view('show', compact('item', 'type'));
+        // Parse wikilinks in content
+        $wikilinkService = app(\App\Services\WikilinkService::class);
+        if (isset($item['body'])) {
+            $item['body'] = $wikilinkService->parseWikilinks($item['body']);
+        }
+
+        // Get backlinks (notes that link to this note)
+        $backlinks = [];
+        if ($type === 'notes' && !empty($item['title'])) {
+            $backlinks = $wikilinkService->findBacklinks($item['title']);
+        }
+
+        return view('show', compact('item', 'type', 'backlinks'));
     }
 }

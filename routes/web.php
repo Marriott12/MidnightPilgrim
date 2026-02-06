@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\CheckInController;
+use App\Http\Controllers\ExportController;
+use App\Http\Controllers\PreviewController;
 use App\Http\Controllers\ReadController;
 use App\Http\Controllers\WriteController;
 
@@ -19,6 +21,8 @@ Route::post('/notes/store', [WriteController::class, 'store'])->name('notes.stor
 Route::get('/notes/{slug}/edit', [WriteController::class, 'edit'])->name('notes.edit');
 Route::put('/notes/{slug}', [WriteController::class, 'update'])->name('notes.update');
 Route::delete('/notes/{slug}', [WriteController::class, 'destroy'])->name('notes.destroy');
+Route::get('/notes/{slug}/download', [ExportController::class, 'downloadNote'])->name('notes.download');
+Route::get('/export/vault', [ExportController::class, 'exportVault'])->name('vault.export');
 Route::get('/read', [ReadController::class, 'index'])->name('read');
 Route::get('/adjacent-view', [ReadController::class, 'adjacent'])->name('adjacent');
 Route::get('/view/{type}/{slug}', [ReadController::class, 'show'])
@@ -44,6 +48,8 @@ Route::post('/api/assistant', [AssistantController::class, 'handle'])
         \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
         \Illuminate\View\Middleware\ShareErrorsFromSession::class,
     ]);
+
+Route::post('/api/preview', [PreviewController::class, 'preview']);
 
 Route::post('/api/check-ins', [CheckInController::class, 'store'])
     ->withoutMiddleware([

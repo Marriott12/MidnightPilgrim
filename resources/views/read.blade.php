@@ -151,6 +151,7 @@
             <a href="/read" class="current">Read</a>
             <a href="/adjacent-view">Adjacent</a>
             <a href="/sit">Sit</a>
+            <a href="/export/vault" style="color: #666; font-size: 0.85rem; align-self: center;">Export All</a>
         </div>
     </nav>
 
@@ -162,12 +163,25 @@
             $thoughtsCount = collect($items ?? [])->where('type', 'thought')->count();
         @endphp
         
+        <!-- Search bar -->
+        <div style="margin-bottom: 2rem;">
+            <input 
+                type="text" 
+                id="search" 
+                placeholder="Search your writings..." 
+                style="width: 100%; background: transparent; border: 1px solid #333; color: #c4c4c4; padding: 0.75rem 1rem; font-size: 0.95rem; border-radius: 2px; outline: none;"
+                autocomplete="off"
+            >
+        </div>
+        
         <div class="filter">
             <button class="active" data-type="all">All <span style="opacity: 0.4;">{{ $allCount }}</span></button>
             <button data-type="note">Notes <span style="opacity: 0.4;">{{ $notesCount }}</span></button>
             <button data-type="quote">Quotes <span style="opacity: 0.4;">{{ $quotesCount }}</span></button>
             <button data-type="thought">Thoughts <span style="opacity: 0.4;">{{ $thoughtsCount }}</span></button>
-            <span style="font-size: 0.8rem; color: #333; margin-left: auto;">j/k to browse</span>
+            <button id="random-btn" style="margin-left: auto; border-color: #666; color: #8b8baf;">Random</button>
+            <button id="expand-btn" style="border-color: #333; color: #666; margin-left: 0.5rem;">Expand</button>
+            <span style="font-size: 0.8rem; color: #333; margin-left: 1rem;">j/k to browse</span>
         </div>
 
         <div id="content">
@@ -187,7 +201,15 @@
                             @if(!empty($item['title']))
                                 <div style="font-weight: 400; color: #c4c4c4; margin-bottom: 0.5rem;">{{ $item['title'] }}</div>
                             @endif
-                            <div style="color: #999;">{{ Str::limit($item['body'] ?? '', 150) }}</div>
+                            <div class="item-excerpt" style="color: #999;">{{ Str::limit($item['body'] ?? '', 150) }}</div>
+                            <div class="item-full" style="color: #999; display: none;">{!! Str::markdown($item['body'] ?? '') !!}</div>
+                            @if(!empty($item['tags']) && is_array($item['tags']))
+                                <div class="tags" style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    @foreach($item['tags'] as $tag)
+                                        <span class="tag" data-tag="{{ $tag }}" style="font-size: 0.8rem; color: #666; border: 1px solid #333; padding: 0.2rem 0.6rem; border-radius: 2px; cursor: pointer;">{{ $tag }}</span>
+                                    @endforeach
+                                </div>
+                            @endif
                         </a>
                     </div>
                 </div>
@@ -207,22 +229,88 @@
         }
 
         // Simple filter (client-side for now)
-        document.querySelectorAll('.filter button').forEach(btn => {
+        const filterButtons = document.querySelectorAll('.filter button:not(#random-btn)');
+        filterButtons.forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter button').forEach(b => b.classList.remove('active'));
+                filterButtons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
 
                 const type = btn.dataset.type;
-                const items = document.querySelectorAll('.item');
+                applyFilters();
+            });
+        });
 
-                items.forEach(item => {
-                    if (type === 'all' || item.dataset.type === type) {
-                        item.style.display = 'block';
+        // Search functionality
+        const searchInput = document.getElementById('search');
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                applyFilters();
+            }, 300);
+        });
+
+        // Apply both type filter and search
+        function applyFilters() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const activeBtn = document.querySelector('.filter button.active');
+            const type = activeBtn ? activeBtn.dataset.type : 'all';
+            const allItems = document.querySelectorAll('.item');
+
+            allItems.forEach(item => {
+                const itemType = item.dataset.type;
+                const itemText = item.textContent.toLowerCase();
+                
+                const matchesType = type === 'all' || itemType === type;
+                const matchesSearch = !searchTerm || itemText.includes(searchTerm);
+                
+                item.style.display = (matchesType && matchesSearch) ? 'block' : 'none';
+            });
+        }
+
+        // Tag filtering
+        let selectedTag = null;
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tag')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const tag = e.target.dataset.tag;
+                
+                // Toggle tag selection
+                if (selectedTag === tag) {
+                    selectedTag = null;
+                    document.querySelectorAll('.tag').forEach(t => t.style.borderColor = '#333');
+                } else {
+                    selectedTag = tag;
+                    document.querySelectorAll('.tag').forEach(t => {
+                        t.style.borderColor = t.dataset.tag === tag ? '#8b8baf' : '#333';
+                    });
+                }
+                
+                // Filter items by tag
+                const allItems = document.querySelectorAll('.item');
+                allItems.forEach(item => {
+                    if (!selectedTag) {
+                        // Reset to normal filter
+                        applyFilters();
                     } else {
-                        item.style.display = 'none';
+                        const itemTags = Array.from(item.querySelectorAll('.tag')).map(t => t.dataset.tag);
+                        const matchesTag = itemTags.includes(selectedTag);
+                        item.style.display = matchesTag ? 'block' : 'none';
                     }
                 });
-            });
+            }
+        });
+
+        // Random note
+        document.getElementById('random-btn').addEventListener('click', () => {
+            const visibleItems = Array.from(document.querySelectorAll('.item')).filter(item => item.style.display !== 'none');
+            if (visibleItems.length > 0) {
+                const randomItem = visibleItems[Math.floor(Math.random() * visibleItems.length)];
+                const link = randomItem.querySelector('a');
+                if (link) link.click();
+            }
         });
 
         // Keyboard navigation (j/k for vim-style browsing)
@@ -261,6 +349,28 @@
                 const buttons = document.querySelectorAll('.filter button');
                 const index = parseInt(e.key) - 1;
                 if (buttons[index]) buttons[index].click();
+            }
+        });
+        
+        // Expand/collapse toggle
+        let isExpanded = false;
+        document.getElementById('expand-btn').addEventListener('click', function() {
+            isExpanded = !isExpanded;
+            const excerpts = document.querySelectorAll('.item-excerpt');
+            const fulls = document.querySelectorAll('.item-full');
+            
+            if (isExpanded) {
+                excerpts.forEach(el => el.style.display = 'none');
+                fulls.forEach(el => el.style.display = 'block');
+                this.textContent = 'Collapse';
+                this.style.borderColor = '#8b8baf';
+                this.style.color = '#8b8baf';
+            } else {
+                excerpts.forEach(el => el.style.display = 'block');
+                fulls.forEach(el => el.style.display = 'none');
+                this.textContent = 'Expand';
+                this.style.borderColor = '#333';
+                this.style.color = '#666';
             }
         });
     </script>

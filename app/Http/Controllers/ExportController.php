@@ -3,49 +3,59 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use ZipArchive;
-use App\Models\Note;
-use App\Models\Quote;
-use App\Models\DailyThought;
 
 class ExportController extends Controller
 {
-    public function export()
+    /**
+     * Download a single note as markdown file
+     */
+    public function downloadNote($slug)
     {
-        $exportDir = storage_path('app/exports');
-        if (! is_dir($exportDir)) {
-            mkdir($exportDir, 0777, true);
+        $path = "vault/{$slug}.md";
+        
+        if (!Storage::exists($path)) {
+            abort(404, 'Note not found');
         }
-
-        $zipPath = $exportDir . '/midnight_pilgrim_export_' . time() . '.zip';
+        
+        return Storage::download($path, "{$slug}.md");
+    }
+    
+    /**
+     * Export entire vault as ZIP file
+     */
+    public function exportVault()
+    {
+        $zipName = 'midnight-pilgrim-vault-' . date('Y-m-d') . '.zip';
+        $zipPath = storage_path('app/' . $zipName);
+        
         $zip = new ZipArchive();
-        if ($zip->open($zipPath, ZipArchive::CREATE) !== true) {
-            abort(500, 'Could not create export archive');
+        
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            abort(500, 'Could not create ZIP file');
         }
-
-        // Notes
-        foreach (Note::all() as $n) {
-            $name = 'notes/' . ($n->slug ?? 'note') . '.md';
-            $content = ($n->body ?? '') . "\n";
-            $zip->addFromString($name, $content);
+        
+        // Add all vault files
+        $vaultFiles = Storage::files('vault');
+        foreach ($vaultFiles as $file) {
+            $zip->addFile(storage_path('app/' . $file), 'vault/' . basename($file));
         }
-
-        // Quotes
-        foreach (Quote::all() as $q) {
-            $name = 'quotes/' . ($q->slug ?? 'quote') . '.md';
-            $content = ($q->body ?? '') . "\n";
-            $zip->addFromString($name, $content);
+        
+        // Add all quote files
+        $quoteFiles = Storage::files('quotes');
+        foreach ($quoteFiles as $file) {
+            $zip->addFile(storage_path('app/' . $file), 'quotes/' . basename($file));
         }
-
-        // Daily thoughts
-        foreach (DailyThought::all() as $d) {
-            $name = 'thoughts/' . ($d->id ?? 'thought') . '.md';
-            $content = ($d->body ?? '') . "\n";
-            $zip->addFromString($name, $content);
+        
+        // Add all thought files
+        $thoughtFiles = Storage::files('thoughts');
+        foreach ($thoughtFiles as $file) {
+            $zip->addFile(storage_path('app/' . $file), 'thoughts/' . basename($file));
         }
-
+        
         $zip->close();
-
-        return response()->download($zipPath)->deleteFileAfterSend(true);
+        
+        return response()->download($zipPath, $zipName)->deleteFileAfterSend(true);
     }
 }
