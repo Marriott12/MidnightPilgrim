@@ -4,36 +4,23 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateNotesTable extends Migration
-{
-    /**
-     * Run the migrations.
-     *
-     * Note: content is intentionally excluded — content lives in markdown files.
-     *
-     * @return void
-     */
-    public function up()
+return new class extends Migration {
+    public function up(): void
     {
         Schema::create('notes', function (Blueprint $table) {
             $table->id();
             $table->string('title');
             $table->string('slug')->unique();
-            $table->string('type'); // idea | poem | code | journal | prayer
+            $table->string('type')->default('idea');
             $table->string('mood')->nullable();
-            $table->json('tags')->nullable();
-            $table->string('path'); // relative path to markdown file in storage/app
+            $table->text('tags')->nullable();
+            $table->string('path');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
-    public function down()
+    public function down(): void
     {
         Schema::dropIfExists('notes');
     }
-}
+};

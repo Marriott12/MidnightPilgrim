@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0a0a">
+    <title>Write &mdash; Midnight Pilgrim</title>
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0a;
+            color: #c4c4c4;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Silence-first design: no header clutter */
+        nav {
+            padding: 1.5rem;
+            border-bottom: 1px solid #1a1a1a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav a {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: #999;
+        }
+
+        nav .current {
+            color: #c4c4c4;
+        }
+
+        .container {
+            flex: 1;
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+            width: 100%;
+        }
+
+        /* Minimal textarea - like opening a notebook */
+        textarea {
+            width: 100%;
+            min-height: 400px;
+            background: transparent;
+            border: none;
+            color: #c4c4c4;
+            font-family: inherit;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            resize: vertical;
+            outline: none;
+        }
+
+        textarea::placeholder {
+            color: #333;
+        }
+
+        /* Quiet action area - no prominent buttons */
+        .actions {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #1a1a1a;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid #333;
+            color: #999;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+        }
+
+        button:hover {
+            border-color: #666;
+            color: #c4c4c4;
+        }
+
+        button.primary {
+            border-color: #666;
+            color: #c4c4c4;
+        }
+
+        .hint {
+            font-size: 0.85rem;
+            color: #444;
+            margin-left: auto;
+        }
+
+        /* Empty state: intentional, not broken */
+        .empty-state {
+            text-align: center;
+            color: #444;
+            padding: 3rem 1rem;
+            font-size: 0.95rem;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: 2rem 1rem;
+            }
+
+            textarea {
+                min-height: 300px;
+                font-size: 1rem;
+            }
+
+            .actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .hint {
+                margin-left: 0;
+                text-align: center;
+            }
+        }
+
+        /* Night-friendly: no bright whites */
+        ::selection {
+            background: #222;
+            color: #eee;
+        }
+
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Keyboard focus indicator */
+        .user-is-tabbing *:focus {
+            outline: 2px solid #666;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div>
+            <a href="/" style="color: #999; font-weight: 500;">Midnight Pilgrim</a>
+        </div>
+        <div style="display: flex; gap: 1.5rem;">
+            <a href="/write" class="current">Write</a>
+            <a href="/read">Read</a>
+            <a href="/adjacent-view">Adjacent</a>
+            <a href="/sit">Sit</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <form method="POST" action="/notes/store" aria-label="New note">
+            @csrf
+            <label for="body" class="sr-only">Write your note</label>
+            <textarea 
+                id="body"
+                name="body" 
+                placeholder="Like opening a notebook at night..."
+                autofocus
+                aria-placeholder="Like opening a notebook at night"
+                tabindex="0"
+            ></textarea>
+
+            <div class="actions">
+                <button type="submit" class="primary">Save</button>
+                <button type="button" onclick="document.querySelector('textarea').value = ''">Clear</button>
+                <span class="hint">Defaults to private. Mark quotes with &gt;</span>
+                <span class="hint" style="margin-left: 1rem; color: #333;">⌘S to save • ⌘K to clear</span>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // PWA: Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+
+        // Auto-save to localStorage (offline resilience)
+        const textarea = document.querySelector('#body');
+        const AUTOSAVE_KEY = 'midnight_pilgrim_draft';
+
+        // Restore draft
+        const draft = localStorage.getItem(AUTOSAVE_KEY);
+        if (draft && !textarea.value) {
+            textarea.value = draft;
+        }
+
+        // Save draft on input (debounced)
+        let saveTimeout;
+        textarea.addEventListener('input', () => {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                localStorage.setItem(AUTOSAVE_KEY, textarea.value);
+            }, 500);
+        });
+
+        // Clear draft on submit
+        document.querySelector('form').addEventListener('submit', () => {
+            localStorage.removeItem(AUTOSAVE_KEY);
+        });
+
+        // Keyboard shortcut: Ctrl/Cmd+Enter to submit
+        textarea.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                document.querySelector('form').submit();
+            }
+        });
+
+        // Accessibility helper: focus outline for keyboard users
+        document.body.addEventListener('keydown', function onFirstTab(e) {
+            if (e.key === 'Tab') {
+                document.documentElement.classList.add('user-is-tabbing');
+                document.body.removeEventListener('keydown', onFirstTab);
+            }
+        });
+    </script>
+        // Keyboard shortcuts (silence-friendly)
+        document.addEventListener('keydown', (e) => {
+            // Cmd/Ctrl + S to save (quiet, no alert)
+            if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+                e.preventDefault();
+                document.querySelector('form').requestSubmit();
+            }
+            
+            // Cmd/Ctrl + K to clear (quiet confirmation)
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                if (textarea.value.trim()) {
+                    // Quiet confirmation (no alert)
+                    const clear = confirm('Clear this draft?');
+                    if (clear) {
+                        textarea.value = '';
+                        localStorage.removeItem(AUTOSAVE_KEY);
+                        textarea.focus();
+                    }
+                }
+            }
+            
+            // Escape to blur (release focus quietly)
+            if (e.key === 'Escape') {
+                textarea.blur();
+            }
+        });
+
+        // Tab support in textarea (4 spaces)
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                textarea.value = textarea.value.substring(0, start) + '    ' + textarea.value.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + 4;
+            }
+        });
+    </script>
+</body>
+</html>

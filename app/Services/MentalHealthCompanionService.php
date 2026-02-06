@@ -6,6 +6,40 @@ use App\Models\CheckIn;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
+/**
+ * MentalHealthCompanionService - PHASE 5: PRESENCE WITHOUT TREATMENT
+ * 
+ * PURPOSE: Two modes of calm presence, never clinical guidance.
+ * 
+ * MODE A - REFLECTIVE (User-Invoked):
+ * - Longer pauses, references existing notes/poems
+ * - No interpretations, advice, or diagnoses
+ * - Surfaces user's own language back to them
+ * - Can say "I don't know" or offer silence
+ * 
+ * MODE B - CHECK-IN (Brief, Optional):
+ * - One gentle question: "How heavy did today feel?"
+ * - No follow-up unless user responds
+ * - No streaks, penalties, or pressure
+ * - Can be skipped without comment
+ * 
+ * HARD SAFETY BOUNDARIES:
+ * - No medical/therapeutic guidance ever
+ * - No action suggestions ("try this")
+ * - No affirmations or motivation
+ * - No external resource recommendations
+ * - Always private, stored in companion/
+ * - Silence on uncertainty
+ * 
+ * PHASE 5 WILL NEVER:
+ * - Diagnose or assess mental health
+ * - Recommend treatments or interventions
+ * - Track progress or suggest goals
+ * - Gamify engagement or reward streaks
+ * - Share mental health data (permanently private)
+ * 
+ * "Not a therapist, not a coach - a quiet presence."
+ */
 class MentalHealthCompanionService
 {
     protected array $supportPhrases = [

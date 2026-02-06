@@ -3,7 +3,31 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\CheckInController;
+use App\Http\Controllers\ReadController;
+use App\Http\Controllers\WriteController;
 
+/**
+ * PHASE 2-5: SILENCE-FIRST UI ROUTES
+ * 
+ * New minimal routes for Write, Read, Adjacent views.
+ * Existing API and legacy routes preserved below.
+ */
+
+// Phase 2-5: Silence-first UI
+Route::get('/write', [WriteController::class, 'create'])->name('write');
+Route::post('/notes/store', [WriteController::class, 'store'])->name('notes.store');
+Route::get('/read', [ReadController::class, 'index'])->name('read');
+Route::get('/adjacent-view', [ReadController::class, 'adjacent'])->name('adjacent');
+Route::get('/view/{type}/{slug}', [ReadController::class, 'show'])
+    ->where('type', 'notes|quotes|thoughts')
+    ->name('show');
+
+// Phase 6: Sit view (Mental Health Companion)
+Route::get('/sit', function () {
+    return view('sit');
+})->name('sit');
+
+// Existing routes (preserved)
 Route::get('/', function () {
     // simple entry that uses the layout and a single input
     return view('welcome');
@@ -41,6 +65,11 @@ Route::middleware([\App\Http\Middleware\SetPublicMode::class])->group(function (
     Route::get('/download', [\App\Http\Controllers\WaystoneController::class, 'download']);
     Route::get('/silence', [\App\Http\Controllers\WaystoneController::class, 'silence']);
 });
+
+// Sit (Mental Health Companion) - minimal, privacy-first
+Route::get('/sit', [\App\Http\Controllers\CompanionController::class, 'show']);
+Route::post('/sit/begin', [\App\Http\Controllers\CompanionController::class, 'begin']);
+Route::post('/sit/check-in', [\App\Http\Controllers\CompanionController::class, 'storeCheckIn']);
 
 // Sharing ritual
 // Short-circuit share attempts for non-shareable types to avoid session/middleware

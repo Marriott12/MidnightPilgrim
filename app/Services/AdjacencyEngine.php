@@ -21,7 +21,7 @@ class AdjacencyEngine
     /**
      * Scan files and return recurring terms grouped with references.
      * This service is read-only and never writes to content.
-     * Output: [ ['term'=>'night','count'=>4,'refs'=>[['type'=>'note','path'=>'...','excerpt'=>'...'],...]], ... ]
+     * Output: ['clusters' => [ ['term'=>'night','count'=>4,'references'=>[...]], ... ]]
      */
     public function run(int $minOccurrences = 2, array $includeTypes = ['notes','quotes','thoughts']): array
     {
@@ -55,34 +55,38 @@ class AdjacencyEngine
                     $refs[$t][] = [
                         'type' => rtrim($type, 's'),
                         'path' => $f,
+                        'slug' => basename($f, '.md'),
                         'excerpt' => $this->excerptForTerm($text, $t),
+                        'date' => $this->extractDate($f),
                     ];
                 }
             }
         }
 
         // collect terms meeting minOccurrences
-        $out = [];
+        $clusters = [];
         foreach ($counts as $term => $c) {
             if ($c >= $minOccurrences) {
-                $out[] = [
+                $clusters[] = [
                     'term' => $term,
                     'count' => $c,
-                    'refs' => $refs[$term] ?? [],
+                    'references' => $refs[$term] ?? [],
                 ];
             }
         }
 
         // sort by count desc then term
-        usort($out, function($a,$b){
+        usort($clusters, function($a,$b){
             if ($a['count'] === $b['count']) return strcmp($a['term'],$b['term']);
             return $b['count'] - $a['count'];
         });
 
-        // write cache
-        $this->writeCache($out);
+        $result = ['clusters' => $clusters];
 
-        return $out;
+        // write cache
+        $this->writeCache($result);
+
+        return $result;
     }
 
     protected function cachePath(): string
@@ -154,35 +158,29 @@ class AdjacencyEngine
         return substr(trim(strip_tags($text)), 0, 120);
     }
 
+    /**
+     * Extract date from filename (Phase 4)
+     * 
+     * @param string $filepath
+     * @return string
+     */
+    protected function extractDate(string $filepath): string
+    {
+        $basename = basename($filepath, '.md');
+        
+        // Try to extract YYYY-MM-DD from filename
+        if (preg_match('/(\d{4}-\d{2}-\d{2})/', $basename, $matches)) {
+            return $matches[1];
+        }
+        
+        // Fallback to file modification time
+        return date('Y-m-d', filemtime($filepath));
+    }
+
     protected function stopwords(): array
     {
         return [
             'the','and','you','that','with','this','from','have','not','for','was','but','are','his','her','she','him','they','their','will','one','all','about','what','when','where'
         ];
-    }
-}
-<?php
-
-namespace App\Services;
-
-use App\Models\Note;
-
-class AdjacencyEngine
-{
-    /**
-     * Determine related notes based on shared themes and references.
-     */
-    public function findAdjacent(Note $note, int $limit = 5)
-    {
-        $themes = $note->themes ?? [];
-
-        if (empty($themes)) {
-            return collect();
-        }
-
-        return Note::where('id', '!=', $note->id)
-            ->whereJsonContains('themes', $themes)
-            ->limit($limit)
-            ->get();
     }
 }
