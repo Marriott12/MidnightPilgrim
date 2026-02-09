@@ -75,3 +75,4 @@ class CompanionController extends Controller
             'response' => $response ?? 'I\'m here.'
         ]);
     }
+}
