@@ -282,7 +282,6 @@
                 
                 @if(isset($lastNote))
                     <p style="font-size: 0.9rem; color: #555; margin: 1.5rem 0 0 0;">
-                        You last wrote here on <span style="color: #666;">{{ $lastNote['date'] }}</span>: 
                         <a href="/view/notes/{{ $lastNote['slug'] }}" style="color: #8b8baf; text-decoration: none;">{{ $lastNote['title'] }}</a>
                     </p>
                 @endif

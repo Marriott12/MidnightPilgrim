@@ -286,7 +286,7 @@
             <div class="prompt">Saved quietly.</div>
             <div class="subtext">Always private. Never shared.</div>
             <div class="actions">
-                <button onclick="window.location.href='/write'">Continue</button>
+                <button onclick="window.location.href='/write'">Close</button>
             </div>
         </div>
     </div>

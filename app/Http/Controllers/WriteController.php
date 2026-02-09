@@ -37,11 +37,15 @@ class WriteController extends Controller
             'body' => 'required|string|min:1',
             'type' => 'nullable|in:note,poem',
             'visibility' => 'nullable|in:private,reflective,shareable',
+            'write_only' => 'nullable|boolean',
+            'no_archive' => 'nullable|boolean',
         ]);
 
         $body = $request->input('body');
         $type = $request->input('type', 'note');
         $visibility = $request->input('visibility', 'private'); // Phase 0 default
+        $writeOnly = (bool) $request->input('write_only', false);
+        $noArchive = (bool) $request->input('no_archive', false);
 
         // Use provided title or extract from first line or default to 'Untitled'
         $title = $request->input('title');
@@ -70,8 +74,8 @@ class WriteController extends Controller
         
         $path = "vault/{$filename}";
 
-        // Build markdown with frontmatter
-        $markdown = $this->buildMarkdown($title, $slug, $type, $visibility, $body);
+        // Build markdown with frontmatter (including silence flags)
+        $markdown = $this->buildMarkdown($title, $slug, $type, $visibility, $body, $writeOnly, $noArchive);
 
         // Store as immutable markdown (Phase 1)
         Storage::disk('local')->put($path, $markdown);
@@ -84,11 +88,15 @@ class WriteController extends Controller
             'path' => $path,
             'body' => Str::limit($body, 500), // Store excerpt only
             'visibility' => $visibility,
+            'write_only' => $writeOnly,
+            'no_archive' => $noArchive,
         ]);
 
-        // PHASE 2: Auto-extract manually-marked quotes (lines starting with '>')
-        $quoteEngine = app(\App\Services\QuoteEngine::class);
-        $quoteEngine->extractFromNote($note);
+        // PHASE 2: Auto-extract quotes UNLESS write_only mode is enabled
+        if (!$writeOnly) {
+            $quoteEngine = app(\App\Services\QuoteEngine::class);
+            $quoteEngine->extractFromNote($note);
+        }
 
         return redirect('/read')->with('success', 'Saved quietly.');
     }
@@ -101,16 +109,34 @@ class WriteController extends Controller
      * @param string $type
      * @param string $visibility
      * @param string $body
+     * @param bool $writeOnly
+     * @param bool $noArchive
      * @return string
      */
-    protected function buildMarkdown(string $title, string $slug, string $type, string $visibility, string $body): string
-    {
+    protected function buildMarkdown(
+        string $title, 
+        string $slug, 
+        string $type, 
+        string $visibility, 
+        string $body, 
+        bool $writeOnly = false, 
+        bool $noArchive = false
+    ): string {
         $yaml = "---\n";
         $yaml .= "title: {$title}\n";
         $yaml .= "slug: {$slug}\n";
         $yaml .= "type: {$type}\n";
         $yaml .= "date: " . now()->toIso8601String() . "\n";
         $yaml .= "visibility: {$visibility}\n";
+        
+        // Add silence feature flags if enabled
+        if ($writeOnly) {
+            $yaml .= "write_only: true\n";
+        }
+        if ($noArchive) {
+            $yaml .= "no_archive: true\n";
+        }
+        
         $yaml .= "---\n\n";
 
         return $yaml . $body . "\n";
@@ -161,6 +187,8 @@ class WriteController extends Controller
             'body' => 'required|string|min:1',
             'type' => 'nullable|in:note,poem',
             'visibility' => 'nullable|in:private,reflective,shareable',
+            'write_only' => 'nullable|boolean',
+            'no_archive' => 'nullable|boolean',
         ]);
 
         // Find the markdown file
@@ -181,6 +209,8 @@ class WriteController extends Controller
         $body = $request->input('body');
         $type = $request->input('type', 'note');
         $visibility = $request->input('visibility', 'private');
+        $writeOnly = (bool) $request->input('write_only', false);
+        $noArchive = (bool) $request->input('no_archive', false);
         
         // Use provided title or extract from first line
         $title = $request->input('title');
@@ -188,8 +218,8 @@ class WriteController extends Controller
             $title = trim(explode("\n", $body)[0]) ?: 'Untitled';
         }
 
-        // Update markdown file with new content
-        $markdown = $this->buildMarkdown($title, $slug, $type, $visibility, $body);
+        // Update markdown file with new content (including silence flags)
+        $markdown = $this->buildMarkdown($title, $slug, $type, $visibility, $body, $writeOnly, $noArchive);
         Storage::disk('local')->put($filePath, $markdown);
 
         // Update database record if it exists
@@ -200,11 +230,15 @@ class WriteController extends Controller
                 'type' => $type,
                 'body' => Str::limit($body, 500),
                 'visibility' => $visibility,
+                'write_only' => $writeOnly,
+                'no_archive' => $noArchive,
             ]);
             
-            // PHASE 2: Auto-extract manually-marked quotes (lines starting with '>')
-            $quoteEngine = app(\App\Services\QuoteEngine::class);
-            $quoteEngine->extractFromNote($note);
+            // PHASE 2: Auto-extract quotes UNLESS write_only mode is enabled
+            if (!$writeOnly) {
+                $quoteEngine = app(\App\Services\QuoteEngine::class);
+                $quoteEngine->extractFromNote($note);
+            }
         }
 
         return redirect('/view/notes/' . $slug)->with('success', 'Updated quietly.');
