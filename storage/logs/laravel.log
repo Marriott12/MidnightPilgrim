@@ -3507,3 +3507,75 @@ Still living in the sha..., the-magic-i-sought, vault/2026-02-06--100115--the-ma
 #58 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php(23): require_once('C://wamp64//www//M...')
 #59 {main}
 "} 
+[2026-02-09 08:35:01] local.ERROR: PHP Parse error: Syntax error, unexpected '=' on line 1 {"exception":"[object] (Psy\\Exception\\ParseErrorException(code: 0): PHP Parse error: Syntax error, unexpected '=' on line 1 at C:/wamp64/www/MidnightPilgrim/vendor/psy/psysh/src/Exception/ParseErrorException.php:44)
+[stacktrace]
+#0 C:/wamp64/www/MidnightPilgrim/vendor/psy/psysh/src/CodeCleaner.php(488): Psy/Exception/ParseErrorException::fromParseError(Object(PhpParser/Error))
+#1 C:/wamp64/www/MidnightPilgrim/vendor/psy/psysh/src/CodeCleaner.php(269): Psy/CodeCleaner->parse('<?php  = App//Mo...', false)
+#2 C:/wamp64/www/MidnightPilgrim/vendor/psy/psysh/src/Shell.php(985): Psy/CodeCleaner->clean(Array, false)
+#3 C:/wamp64/www/MidnightPilgrim/vendor/psy/psysh/src/Shell.php(1018): Psy/Shell->addCode(' = App//Models//N...', true)
+#4 C:/wamp64/www/MidnightPilgrim/vendor/psy/psysh/src/Shell.php(1562): Psy/Shell->setCode(' = App//Models//N...', true)
+#5 C:/wamp64/www/MidnightPilgrim/vendor/laravel/tinker/src/Console/TinkerCommand.php(76): Psy/Shell->execute(' = App//Models//N...')
+#6 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Laravel/Tinker/Console/TinkerCommand->handle()
+#7 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate/Container/BoundMethod::Illuminate/Container/{closure}()
+#8 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(96): Illuminate/Container/Util::unwrapIfClosure(Object(Closure))
+#9 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate/Container/BoundMethod::callBoundMethod(Object(Illuminate/Foundation/Application), Array, Object(Closure))
+#10 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Container/Container.php(799): Illuminate/Container/BoundMethod::call(Object(Illuminate/Foundation/Application), Array, Array, NULL)
+#11 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Console/Command.php(211): Illuminate/Container/Container->call(Array)
+#12 C:/wamp64/www/MidnightPilgrim/vendor/symfony/console/Command/Command.php(341): Illuminate/Console/Command->execute(Object(Symfony/Component/Console/Input/ArgvInput), Object(Illuminate/Console/OutputStyle))
+#13 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Console/Command.php(180): Symfony/Component/Console/Command/Command->run(Object(Symfony/Component/Console/Input/ArgvInput), Object(Illuminate/Console/OutputStyle))
+#14 C:/wamp64/www/MidnightPilgrim/vendor/symfony/console/Application.php(1102): Illuminate/Console/Command->run(Object(Symfony/Component/Console/Input/ArgvInput), Object(Symfony/Component/Console/Output/ConsoleOutput))
+#15 C:/wamp64/www/MidnightPilgrim/vendor/symfony/console/Application.php(356): Symfony/Component/Console/Application->doRunCommand(Object(Laravel/Tinker/Console/TinkerCommand), Object(Symfony/Component/Console/Input/ArgvInput), Object(Symfony/Component/Console/Output/ConsoleOutput))
+#16 C:/wamp64/www/MidnightPilgrim/vendor/symfony/console/Application.php(195): Symfony/Component/Console/Application->doRun(Object(Symfony/Component/Console/Input/ArgvInput), Object(Symfony/Component/Console/Output/ConsoleOutput))
+#17 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony/Component/Console/Application->run(Object(Symfony/Component/Console/Input/ArgvInput), Object(Symfony/Component/Console/Output/ConsoleOutput))
+#18 C:/wamp64/www/MidnightPilgrim/artisan(19): Illuminate/Foundation/Console/Kernel->handle(Object(Symfony/Component/Console/Input/ArgvInput))
+#19 {main}
+"} 
+[2026-02-09 08:37:33] local.ERROR: SQLSTATE[HY000]: General error: 1 table quotes has no column named confidence (Connection: sqlite, Database: database/database.sqlite, SQL: insert into "quotes" ("visibility", "confidence", "slug", "source_note_id", "path", "body", "updated_at", "created_at") values (private, heuristic, after-all-the-losses-youd-think-id-have-learne, 2, quotes/2026-02-09--083732--after-all-the-losses-youd-think-id-have-learne.md, After all the losses,
+You’d think I’d have learned to let go, 2026-02-09 08:37:32, 2026-02-09 08:37:32)) {"exception":"[object] (Illuminate\\Database\\QueryException(code: HY000): SQLSTATE[HY000]: General error: 1 table quotes has no column named confidence (Connection: sqlite, Database: database/database.sqlite, SQL: insert into \"quotes\" (\"visibility\", \"confidence\", \"slug\", \"source_note_id\", \"path\", \"body\", \"updated_at\", \"created_at\") values (private, heuristic, after-all-the-losses-youd-think-id-have-learne, 2, quotes/2026-02-09--083732--after-all-the-losses-youd-think-id-have-learne.md, After all the losses,
+
+You’d think I’d have learned to let go, 2026-02-09 08:37:32, 2026-02-09 08:37:32)) at C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Connection.php:838)
+[stacktrace]
+#0 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate/Database/Connection->runQueryCallback('insert into \"qu...', Array, Object(Closure))
+#1 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Connection.php(573): Illuminate/Database/Connection->run('insert into \"qu...', Array, Object(Closure))
+#2 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Connection.php(537): Illuminate/Database/Connection->statement('insert into \"qu...', Array)
+#3 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Query/Processors/Processor.php(32): Illuminate/Database/Connection->insert('insert into \"qu...', Array)
+#4 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4054): Illuminate/Database/Query/Processors/Processor->processInsertGetId(Object(Illuminate/Database/Query/Builder), 'insert into \"qu...', Array, 'id')
+#5 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(2235): Illuminate/Database/Query/Builder->insertGetId(Array, 'id')
+#6 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1436): Illuminate/Database/Eloquent/Builder->__call('insertGetId', Array)
+#7 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1401): Illuminate/Database/Eloquent/Model->insertAndSetId(Object(Illuminate/Database/Eloquent/Builder), Array)
+#8 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1240): Illuminate/Database/Eloquent/Model->performInsert(Object(Illuminate/Database/Eloquent/Builder))
+#9 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1219): Illuminate/Database/Eloquent/Model->save()
+#10 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Support/helpers.php(390): Illuminate/Database/Eloquent/Builder->Illuminate/Database/Eloquent/{closure}(Object(App/Models/Quote))
+#11 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1218): tap(Object(App/Models/Quote), Object(Closure))
+#12 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Support/Traits/ForwardsCalls.php(23): Illuminate/Database/Eloquent/Builder->create(Array)
+#13 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(2540): Illuminate/Database/Eloquent/Model->forwardCallTo(Object(Illuminate/Database/Eloquent/Builder), 'create', Array)
+#14 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(2556): Illuminate/Database/Eloquent/Model->__call('create', Array)
+#15 C:/wamp64/www/MidnightPilgrim/app/Services/QuoteEngine.php(175): Illuminate/Database/Eloquent/Model::__callStatic('create', Array)
+#16 C:/wamp64/www/MidnightPilgrim/app/Services/QuoteEngine.php(90): App/Services/QuoteEngine->storeQuote(Object(App/Models/Note), 'After all the l...', Array)
+#17 C:/wamp64/www/MidnightPilgrim/auto_suggest_quotes.php(33): App/Services/QuoteEngine->promoteToQuote(Object(App/Models/Note), 'After all the l...', Array)
+#18 {main}
+
+[previous exception] [object] (PDOException(code: HY000): SQLSTATE[HY000]: General error: 1 table quotes has no column named confidence at C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Connection.php:578)
+[stacktrace]
+#0 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Connection.php(578): PDO->prepare('insert into \"qu...')
+#1 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Connection.php(827): Illuminate/Database/Connection->Illuminate/Database/{closure}('insert into \"qu...', Array)
+#2 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Connection.php(794): Illuminate/Database/Connection->runQueryCallback('insert into \"qu...', Array, Object(Closure))
+#3 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Connection.php(573): Illuminate/Database/Connection->run('insert into \"qu...', Array, Object(Closure))
+#4 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Connection.php(537): Illuminate/Database/Connection->statement('insert into \"qu...', Array)
+#5 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Query/Processors/Processor.php(32): Illuminate/Database/Connection->insert('insert into \"qu...', Array)
+#6 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(4054): Illuminate/Database/Query/Processors/Processor->processInsertGetId(Object(Illuminate/Database/Query/Builder), 'insert into \"qu...', Array, 'id')
+#7 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(2235): Illuminate/Database/Query/Builder->insertGetId(Array, 'id')
+#8 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1436): Illuminate/Database/Eloquent/Builder->__call('insertGetId', Array)
+#9 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1401): Illuminate/Database/Eloquent/Model->insertAndSetId(Object(Illuminate/Database/Eloquent/Builder), Array)
+#10 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1240): Illuminate/Database/Eloquent/Model->performInsert(Object(Illuminate/Database/Eloquent/Builder))
+#11 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1219): Illuminate/Database/Eloquent/Model->save()
+#12 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Support/helpers.php(390): Illuminate/Database/Eloquent/Builder->Illuminate/Database/Eloquent/{closure}(Object(App/Models/Quote))
+#13 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1218): tap(Object(App/Models/Quote), Object(Closure))
+#14 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Support/Traits/ForwardsCalls.php(23): Illuminate/Database/Eloquent/Builder->create(Array)
+#15 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(2540): Illuminate/Database/Eloquent/Model->forwardCallTo(Object(Illuminate/Database/Eloquent/Builder), 'create', Array)
+#16 C:/wamp64/www/MidnightPilgrim/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(2556): Illuminate/Database/Eloquent/Model->__call('create', Array)
+#17 C:/wamp64/www/MidnightPilgrim/app/Services/QuoteEngine.php(175): Illuminate/Database/Eloquent/Model::__callStatic('create', Array)
+#18 C:/wamp64/www/MidnightPilgrim/app/Services/QuoteEngine.php(90): App/Services/QuoteEngine->storeQuote(Object(App/Models/Note), 'After all the l...', Array)
+#19 C:/wamp64/www/MidnightPilgrim/auto_suggest_quotes.php(33): App/Services/QuoteEngine->promoteToQuote(Object(App/Models/Note), 'After all the l...', Array)
+#20 {main}
+"} 

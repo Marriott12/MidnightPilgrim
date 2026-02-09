@@ -77,7 +77,7 @@ class WriteController extends Controller
         Storage::disk('local')->put($path, $markdown);
 
         // Optional: Create database record for querying
-        Note::create([
+        $note = Note::create([
             'title' => $title,
             'slug' => $slug,
             'type' => $type,
@@ -85,6 +85,10 @@ class WriteController extends Controller
             'body' => Str::limit($body, 500), // Store excerpt only
             'visibility' => $visibility,
         ]);
+
+        // PHASE 2: Auto-extract manually-marked quotes (lines starting with '>')
+        $quoteEngine = app(\App\Services\QuoteEngine::class);
+        $quoteEngine->extractFromNote($note);
 
         return redirect('/read')->with('success', 'Saved quietly.');
     }
@@ -197,6 +201,10 @@ class WriteController extends Controller
                 'body' => Str::limit($body, 500),
                 'visibility' => $visibility,
             ]);
+            
+            // PHASE 2: Auto-extract manually-marked quotes (lines starting with '>')
+            $quoteEngine = app(\App\Services\QuoteEngine::class);
+            $quoteEngine->extractFromNote($note);
         }
 
         return redirect('/view/notes/' . $slug)->with('success', 'Updated quietly.');
