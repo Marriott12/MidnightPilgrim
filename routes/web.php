@@ -100,6 +100,7 @@ Route::middleware([\App\Http\Middleware\SetPublicMode::class])->group(function (
 // Sit (Mental Health Companion) - minimal, privacy-first
 Route::get('/sit', [\App\Http\Controllers\CompanionController::class, 'show']);
 Route::post('/sit/begin', [\App\Http\Controllers\CompanionController::class, 'begin']);
+Route::post('/sit/respond', [\App\Http\Controllers\CompanionController::class, 'respond']);
 Route::post('/sit/check-in', [\App\Http\Controllers\CompanionController::class, 'storeCheckIn']);
 
 // Sharing ritual

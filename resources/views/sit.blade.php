@@ -242,8 +242,37 @@
             </form>
         </div>
         
-        <!-- Company Mode (Existing check-in flow) -->
+        <!-- Company Mode - Choose conversation or check-in -->
         <div id="company-mode" class="hidden">
+            <div class="prompt">How would you like to sit with company?</div>
+            <div class="subtext">Both are private. Neither is stored unless you choose.</div>
+            <div class="actions">
+                <button onclick="enterMode('conversation')">Conversation</button>
+                <button onclick="enterMode('checkin')">Brief Check-In</button>
+                <button type="button" onclick="resetState()">Back</button>
+            </div>
+        </div>
+        
+        <!-- Conversation Mode (gentle back-and-forth) -->
+        <div id="conversation-mode" class="hidden">
+            <div class="prompt">What's present?</div>
+            <div class="subtext">You can write, or not. This stays between you and the quiet.</div>
+            <form id="conversation-form" onsubmit="handleConversation(event)">
+                <textarea 
+                    name="input" 
+                    placeholder="You can say anything..."
+                    autofocus
+                ></textarea>
+                <div class="actions">
+                    <button type="submit">Send</button>
+                    <button type="button" onclick="resetState()">Close</button>
+                </div>
+            </form>
+            <div id="conversation-response" class="hidden"></div>
+        </div>
+        
+        <!-- Check-In Mode -->
+        <div id="checkin-mode" class="hidden">
             <div class="prompt">How heavy did today feel?</div>
             <div class="subtext">1 = light, 5 = heavy. Saved privately, never shared.</div>
             <form id="checkin-form" onsubmit="handleCheckin(event)">
@@ -283,25 +312,31 @@
             initial: document.getElementById('initial-state'),
             quiet: document.getElementById('quiet-mode'),
             company: document.getElementById('company-mode'),
+            conversation: document.getElementById('conversation-mode'),
+            checkin: document.getElementById('checkin-mode'),
             saved: document.getElementById('saved-state')
         };
 
         function hideAll() {
-            Object.values(states).forEach(el => el.classList.add('hidden'));
+            Object.values(states).forEach(el => el?.classList.add('hidden'));
         }
 
         function showState(name) {
             hideAll();
-            states[name].classList.remove('hidden');
+            states[name]?.classList.remove('hidden');
         }
 
         function enterMode(mode) {
             showState(mode);
             
             if (mode === 'company') {
-                document.querySelector('#checkin-form input').focus();
+                // Just show company choice, no focus needed
             } else if (mode === 'quiet') {
-                document.querySelector('#quiet-form textarea').focus();
+                document.querySelector('#quiet-form textarea')?.focus();
+            } else if (mode === 'conversation') {
+                document.querySelector('#conversation-form textarea')?.focus();
+            } else if (mode === 'checkin') {
+                document.querySelector('#checkin-form input')?.focus();
             }
         }
 
@@ -309,8 +344,12 @@
             showState('initial');
             
             // Clear forms
-            document.getElementById('quiet-form').reset();
-            document.getElementById('checkin-form').reset();
+            document.getElementById('quiet-form')?.reset();
+            document.getElementById('conversation-form')?.reset();
+            document.getElementById('checkin-form')?.reset();
+            
+            // Hide responses
+            document.getElementById('conversation-response')?.classList.add('hidden');
         }
         
         // Quiet mode: just a textarea, no storage, no AI
@@ -323,21 +362,22 @@
             document.querySelector('#quiet-form textarea').value = '';
             document.querySelector('#quiet-form textarea').focus();
         }
-
-        async function handleCheckin(e) {
+        
+        // Conversation mode: gentle back-and-forth
+        async function handleConversation(e) {
             e.preventDefault();
             
             const input = e.target.input.value.trim();
             if (!input) return;
 
-            const responseDiv = document.getElementById('reflective-response');
+            const responseDiv = document.getElementById('conversation-response');
             const submitBtn = e.target.querySelector('button[type="submit"]');
             
             submitBtn.disabled = true;
             submitBtn.textContent = '…';
 
             try {
-                const response = await fetch('/sit/begin', {
+                const response = await fetch('/sit/respond', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -356,7 +396,59 @@
                         </div>
                     `;
                     responseDiv.classList.remove('hidden');
+                    
+                    // Clear textarea for next message
+                    e.target.input.value = '';
+                    e.target.input.focus();
                 }
+
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <div class="response">
+                        <div class="response-text">I'm here.</div>
+                    </div>
+                `;
+                responseDiv.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send';
+            }
+        }
+
+        async function handleCheckin(e) {
+            e.preventDefault();
+            
+            const intensity = e.target.intensity.value;
+            if (!intensity) return;
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = '…';
+
+            try {
+                const response = await fetch('/sit/check-in', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ intensity: parseInt(intensity) })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showState('saved');
+                }
+
+            } catch (error) {
+                alert('Could not save check-in.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Save';
+            }
+        }
 
                 e.target.input.value = '';
                 

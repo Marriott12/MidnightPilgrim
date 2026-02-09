@@ -56,4 +56,22 @@ class CompanionController extends Controller
             'message' => 'Saved quietly. Always private.'
         ]);
     }
-}
+    
+    /**
+     * Respond to conversational input (gentle, non-directive)
+     * Phase 5: Mental Health Companion - Mode A (reflective conversation)
+     */
+    public function respond(Request $request)
+    {
+        $validated = $request->validate([
+            'input' => 'required|string|max:2000',
+        ]);
+
+        // Get gentle response (references user's own writings or witnessing phrase)
+        $response = $this->companion->respondToInputWithReferencePriority($validated['input']);
+
+        return response()->json([
+            'text' => $response ?? 'I\'m here.',
+            'response' => $response ?? 'I\'m here.'
+        ]);
+    }
