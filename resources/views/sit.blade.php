@@ -450,50 +450,6 @@
             }
         }
 
-                e.target.input.value = '';
-                
-            } catch (error) {
-                // Fail quietly - no alert
-                console.error('Error:', error);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Send';
-            }
-        }
-
-        async function handleCheckin(e) {
-            e.preventDefault();
-            
-            const intensity = parseInt(e.target.intensity.value);
-            if (!intensity || intensity < 1 || intensity > 5) return;
-
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = '…';
-
-            try {
-                await fetch('/sit/check-in', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ 
-                        intensity,
-                        note: ''
-                    })
-                });
-
-                // Show saved state
-                showState('saved');
-                
-            } catch (error) {
-                console.error('Error:', error);
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Save';
-            }
-        }
-
         // Escape to close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
