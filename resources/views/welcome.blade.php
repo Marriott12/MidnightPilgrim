@@ -1,385 +1,284 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Midnight Pilgrim</title>
-        <link rel="manifest" href="/manifest.json">
-        <link rel="icon" type="image/x-icon" href="/favicon.ico">
-        <meta name="theme-color" content="#0a0a0a">
-        <meta name="description" content="A quiet place for your thoughts. Silence-first, local-first, no tracking.">
-        
-        <style>
-            /* Reset */
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            
-            /* Base */
-            html { 
-                scroll-behavior: smooth;
-                font-size: 16px;
-            }
-            
-            body { 
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-                background: #0a0a0a;
-                color: #999;
-                line-height: 1.8;
-                font-weight: 300;
-                -webkit-font-smoothing: antialiased;
-            }
-            
-            /* Typography */
-            h1, h2, h3 { font-weight: 300; line-height: 1.2; }
-            h1 { 
-                font-size: 2.5rem; 
-                letter-spacing: -0.02em; 
-                color: #c4c4c4;
-            }
-            h2 { 
-                font-size: 1.125rem; 
-                letter-spacing: -0.01em; 
-                color: #999;
-                font-weight: 300;
-            }
-            h3 { 
-                font-size: 1rem; 
-                color: #c4c4c4;
-                font-weight: 400;
-            }
-            
-            p { color: #777; }
-            a { color: inherit; text-decoration: none; }
-            
-            ::selection {
-                background: #222;
-                color: #eee;
-            }
-            
-            /* Layout */
-            .container {
-                max-width: 40rem;
-                margin: 0 auto;
-                padding: 0 1.5rem;
-            }
-            
-            .section {
-                padding: 5rem 0;
-            }
-            
-            /* Hero - Single focal point */
-            .hero {
-                min-height: 100vh;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                text-align: center;
-                padding: 3rem 1.5rem;
-            }
-            
-            .hero-content {
-                max-width: 28rem;
-            }
-            
-            .hero h1 {
-                margin-bottom: 1.5rem;
-            }
-            
-            .hero .tagline {
-                font-size: 1.125rem;
-                color: #999;
-                margin-bottom: 2.5rem;
-                line-height: 1.6;
-            }
-            
-            .hero .principles {
-                font-size: 0.75rem;
-                color: #555;
-                letter-spacing: 0.1em;
-                text-transform: uppercase;
-                margin-bottom: 3.5rem;
-            }
-            
-            /* Separator - Visual silence */
-            .separator {
-                width: 3rem;
-                height: 1px;
-                background: #262626;
-                margin: 2.5rem auto;
-            }
-            
-            /* Button - Restrained */
-            .btn {
-                display: inline-block;
-                padding: 0.875rem 2.75rem;
-                background: transparent;
-                border: 1px solid #333;
-                color: #999;
-                font-size: 0.9375rem;
-                font-weight: 300;
-                letter-spacing: 0.02em;
-                transition: all 0.3s ease;
-                cursor: pointer;
-            }
-            
-            .btn:hover {
-                border-color: #666;
-                color: #c4c4c4;
-                background: rgba(255, 255, 255, 0.02);
-            }
-            
-            /* What This Is - Calm explanation */
-            .intro {
-                text-align: center;
-                max-width: 34rem;
-                margin: 0 auto 5rem;
-            }
-            
-            .intro p {
-                font-size: 1rem;
-                line-height: 1.9;
-                color: #777;
-            }
-            
-            /* Modes - Not features, ways of being */
-            .modes {
-                display: grid;
-                gap: 2.5rem;
-                margin-bottom: 3rem;
-            }
-            
-            .mode {
-                padding: 1.5rem;
-                border: 1px solid #1a1a1a;
-                transition: all 0.3s ease;
-            }
-            
-            .mode:hover {
-                border-color: #262626;
-                background: rgba(255, 255, 255, 0.01);
-            }
-            
-            .mode h3 {
-                margin-bottom: 0.75rem;
-            }
-            
-            .mode p {
-                font-size: 0.9375rem;
-                line-height: 1.7;
-                color: #666;
-            }
-            
-            .mode a {
-                display: block;
-            }
-            
-            .mode a:hover h3 {
-                color: #8b8baf;
-            }
-            
-            /* Philosophy - Collapsible, quiet */
-            .philosophy {
-                text-align: center;
-                padding: 4rem 0;
-                border-top: 1px solid #1a1a1a;
-            }
-            
-            .philosophy p {
-                font-size: 0.9375rem;
-                font-style: italic;
-                margin-bottom: 1.25rem;
-                color: #555;
-            }
-            
-            .philosophy a {
-                font-size: 0.875rem;
-                color: #666;
-                border-bottom: 1px solid transparent;
-                transition: all 0.3s ease;
-            }
-            
-            .philosophy a:hover {
-                border-bottom-color: #666;
-                color: #8b8baf;
-            }
-            
-            /* Footer - Entry points */
-            .footer {
-                text-align: center;
-                padding: 3rem 0 5rem;
-            }
-            
-            .install-btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-                padding: 0.75rem 2rem;
-                background: #0f0f0f;
-                border: 1px solid #1a1a1a;
-                color: #666;
-                font-size: 0.875rem;
-                transition: all 0.3s ease;
-                margin-bottom: 1rem;
-                cursor: pointer;
-                font-family: inherit;
-                font-weight: 300;
-            }
-            
-            .install-btn:hover {
-                border-color: #333;
-                color: #999;
-                background: #121212;
-            }
-            
-            .install-btn.hidden {
-                display: none;
-            }
-            
-            .continue-link {
-                display: block;
-                margin-top: 1rem;
-                font-size: 0.875rem;
-                color: #444;
-            }
-            
-            .continue-link:hover {
-                color: #666;
-            }
-            
-            /* Responsive - Mobile first */
-            @media (min-width: 48rem) {
-                h1 { font-size: 3.25rem; }
-                .hero .tagline { font-size: 1.25rem; }
-                .modes { 
-                    grid-template-columns: repeat(2, 1fr); 
-                    gap: 2rem;
-                }
-                .section { padding: 6rem 0; }
-            }
-            
-            @media (min-width: 64rem) {
-                h1 { font-size: 3.75rem; }
-                .container { max-width: 44rem; }
-            }
-            
-            /* Reduced motion preference */
-            @media (prefers-reduced-motion: reduce) {
-                * {
-                    animation: none !important;
-                    transition: none !important;
-                }
-                html { scroll-behavior: auto; }
-            }
-        </style>
-    </head>
-    
-    <body>
-        <!-- Hero / Arrival - Single focal point -->
-        <section class="hero">
-            <div class="hero-content">
-                <h1>Midnight Pilgrim</h1>
-                <p class="tagline">A quiet place for your thoughts.</p>
-                
-                @if(isset($lastNote))
-                    <p style="font-size: 0.9rem; color: #555; margin: 1.5rem 0 0 0;">
-                        <a href="/view/notes/{{ $lastNote['slug'] }}" style="color: #8b8baf; text-decoration: none;">{{ $lastNote['title'] }}</a>
-                    </p>
-                @endif
-                
-                <div class="separator"></div>
-                <p class="principles">Silence-first · Local-first · No tracking</p>
-                <a href="/write" class="btn">Begin</a>
-            </div>
-        </section>
-        
-        <!-- What This Is - Explanation -->
-        <section class="section">
-            <div class="container">
-                <div class="intro">
-                    <p>
-                        Midnight Pilgrim is a local-first writing space. Your thoughts live as markdown files 
-                        on your machine. There is no optimization, no engagement tracking, no persuasion. 
-                        Everything is private by default. The app exists to serve your reflection, not to shape it.
-                    </p>
-                </div>
-                
-                <!-- Modes of Presence - Not features -->
-                <div class="modes">
-                    <div class="mode">
-                        <a href="/write">
-                            <h3>Write</h3>
-                            <p>Capture thoughts in markdown. Private by default.</p>
-                        </a>
-                    </div>
-                    
-                    <div class="mode">
-                        <a href="/read">
-                            <h3>Read</h3>
-                            <p>Return without judgment. Search gently.</p>
-                        </a>
-                    </div>
-                    
-                    <div class="mode">
-                        <a href="/adjacent-view">
-                            <h3>Adjacent</h3>
-                            <p>See proximity between thoughts. No interpretation.</p>
-                        </a>
-                    </div>
-                    
-                    <div class="mode">
-                        <a href="/sit">
-                            <h3>Sit</h3>
-                            <p>Quiet mental health companion. Brief check-ins or long silence.</p>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Philosophy - Collapsible by restraint -->
-        <section class="philosophy">
-            <div class="container">
-                <p>Your content lives in markdown files. The app is optional.</p>
-                <a href="/philosophy">Read the philosophy</a>
-            </div>
-        </section>
-        
-        <!-- Footer / Entry -->
-        <footer class="footer">
-            <button id="installBtn" class="install-btn hidden">Install App</button>
-            <a href="/write" class="continue-link hidden" id="continueLink">Continue in browser</a>
-        </footer>
-        
-        <script>
-            // PWA Install - Quiet, optional
-            let deferredPrompt;
-            
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault();
-                deferredPrompt = e;
-                const installBtn = document.getElementById('installBtn');
-                const continueLink = document.getElementById('continueLink');
-                installBtn.classList.remove('hidden');
-                continueLink.classList.remove('hidden');
-            });
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a0a0a">
+    <title>Midnight Pilgrim</title>
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-            document.getElementById('installBtn').addEventListener('click', async () => {
-                if (!deferredPrompt) return;
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                deferredPrompt = null;
-                if (outcome === 'accepted') {
-                    document.getElementById('installBtn').classList.add('hidden');
-                    document.getElementById('continueLink').classList.add('hidden');
-                }
-            });
-            
-            // Service worker registration - Silent
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('/sw.js').catch(() => {
-                    // Fail silently
-                });
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            background: #0a0a0a;
+            color: #888;
+            line-height: 1.8;
+            font-weight: 300;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 8rem 2rem 12rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            letter-spacing: -0.02em;
+            color: #c4c4c4;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+            color: #666;
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .last-note {
+            font-size: 0.9375rem;
+            color: #555;
+            margin-bottom: 1rem;
+        }
+
+        .last-note a {
+            color: #777;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .last-note a:hover {
+            color: #999;
+            border-bottom-color: #444;
+        }
+
+        .entry {
+            font-size: 0.9375rem;
+            margin-bottom: 6rem;
+        }
+
+        .entry a {
+            color: #777;
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .entry a:hover {
+            color: #999;
+            border-bottom-color: #444;
+        }
+
+        section {
+            margin-bottom: 5rem;
+        }
+
+        h2 {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #555;
+            margin-bottom: 1.5rem;
+            font-weight: 400;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            color: #777;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .divider {
+            height: 1px;
+            background: #1a1a1a;
+            margin: 5rem 0;
+        }
+
+        .modes {
+            text-align: center;
+            margin: 6rem 0;
+            font-size: 0.9375rem;
+            color: #555;
+        }
+
+        .modes a {
+            color: #666;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .modes a:hover {
+            color: #999;
+        }
+
+        .closing {
+            font-size: 0.9375rem;
+            color: #555;
+            font-style: italic;
+            margin-top: 8rem;
+            text-align: center;
+        }
+
+        .install-btn {
+            display: inline-block;
+            margin-top: 2rem;
+            padding: 0.5rem 1.25rem;
+            background: transparent;
+            border: 1px solid #1a1a1a;
+            color: #555;
+            font-size: 0.8125rem;
+            font-family: inherit;
+            font-weight: 300;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .install-btn:hover {
+            border-color: #262626;
+            color: #666;
+        }
+
+        .install-btn.hidden {
+            display: none;
+        }
+
+        ::selection {
+            background: #222;
+            color: #eee;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 4rem 1.5rem 8rem;
             }
-        </script>
-    </body>
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+                margin-bottom: 4rem;
+            }
+
+            section {
+                margin-bottom: 4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Midnight Pilgrim</h1>
+        <p class="subtitle">A quiet system for thinking — not performing</p>
+
+        @if(isset($lastNote))
+            <p class="last-note">
+                Last: <a href="/view/notes/{{ $lastNote['slug'] }}">{{ $lastNote['title'] }}</a>
+            </p>
+        @endif
+
+        <p class="entry"><a href="/write">Write</a></p>
+
+        <section>
+            <h2>What This Is</h2>
+            <p>Midnight Pilgrim is a local-first writing environment. Your notes exist as markdown files on your machine. The application provides structure for reflection without imposing pace, goal, or interpretation.</p>
+            <p>It does not track engagement. It does not suggest what to write next. It does not attempt to optimize your thinking or improve your output. The interface exists to serve access, not to shape behavior.</p>
+            <p>You can write in silence. You can sit with mental health check-ins that are never analyzed, never surfaced, never used to encourage continued use. You can leave at any time without losing access to what you wrote.</p>
+        </section>
+
+        <div class="divider"></div>
+
+        <section>
+            <h2>Silence</h2>
+            <p>Silence is a valid state. The application does not interpret gaps in writing as problems to solve. It does not send notifications. It does not re-engage you after absence.</p>
+            <p>You can enable write-only mode, where content is never processed. You can mark notes as no-archive, meaning they will not surface in future sessions. You can enter timed stillness — an inert screen with no input, no output, no measurement.</p>
+            <p>These are not hidden features. They are design choices that treat silence as equal to speech.</p>
+        </section>
+
+        <div class="divider"></div>
+
+        <section>
+            <h2>Autonomy</h2>
+            <p>Your data lives in plaintext markdown files. The database is optional infrastructure for search and adjacency. If you remove the application, your writing remains intact and readable.</p>
+            <p>There is no cloud sync by default. There is no account. There is no dependency on external services to access what you wrote. The application does not create lock-in.</p>
+            <p>You can fork the codebase. You can modify the interface. You can remove features you find intrusive. This is not protected by designed complexity.</p>
+        </section>
+
+        <div class="divider"></div>
+
+        <section>
+            <h2>Artificial Intelligence</h2>
+            <p>The companion feature uses AI, but it does not attempt to become a relationship. It references your own notes when relevant. It does not remember prior conversations. It does not build a model of you over time.</p>
+            <p>Responses avoid interpretation, diagnosis, and advice. The language is witnessing, not coaching. When you stop writing, it does not continue. When you close the session, nothing persists except what you explicitly saved.</p>
+            <p>AI is a tool for adjacency and resonance, not for optimization or correction. It does not try to make you more productive, more insightful, or more consistent. It reflects proximity between your words, not progress.</p>
+        </section>
+
+        <div class="divider"></div>
+
+        <section>
+            <h2>Mental Health Boundaries</h2>
+            <p>The Sit mode allows private mental health check-ins. These are stored locally and isolated from all other features. They are never analyzed for trends. They are never surfaced as memories. They do not generate insights or suggestions.</p>
+            <p>The companion does not diagnose. It does not offer therapeutic advice. It does not claim to help. It witnesses what you write and sometimes reflects your own words back. That is the boundary.</p>
+            <p>If you are in crisis, this is not a substitute for human support. The application does not escalate, intervene, or connect you to resources. It is a container for private thought, not a care system.</p>
+        </section>
+
+        <div class="divider"></div>
+
+        <div class="modes">
+            <a href="/write">Write</a> · <a href="/read">Read</a> · <a href="/adjacent-view">Adjacent</a> · <a href="/sit">Sit</a>
+        </div>
+
+        <p class="closing">This page describes intent. If the application violates these boundaries, that is a failure to maintain the covenant, not a feature.</p>
+
+        <div style="text-align: center;">
+            <button id="installBtn" class="install-btn hidden">Install locally</button>
+        </div>
+    </div>
+
+    <script>
+        // PWA Install - Quiet, optional
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBtn').classList.remove('hidden');
+        });
+
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            if (outcome === 'accepted') {
+                document.getElementById('installBtn').classList.add('hidden');
+            }
+        });
+        
+        // Service worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>
+</body>
 </html>
