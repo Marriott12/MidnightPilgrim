@@ -220,7 +220,7 @@
             <div class="prompt">You don't have to do anything here.</div>
             <div class="subtext">Would you like company or quiet?</div>
             <div class="actions">
-                <button onclick="enterMode('company')">Company</button>
+                <button onclick="enterMode('conversation')">Company</button>
                 <button onclick="enterMode('quiet')">Quiet</button>
             </div>
         </div>
@@ -242,17 +242,6 @@
             </form>
         </div>
         
-        <!-- Company Mode - Choose conversation or check-in -->
-        <div id="company-mode" class="hidden">
-            <div class="prompt">How would you like to sit with company?</div>
-            <div class="subtext">Both are private. Neither is stored unless you choose.</div>
-            <div class="actions">
-                <button onclick="enterMode('conversation')">Conversation</button>
-                <button onclick="enterMode('checkin')">Brief Check-In</button>
-                <button type="button" onclick="resetState()">Back</button>
-            </div>
-        </div>
-        
         <!-- Conversation Mode (gentle back-and-forth) -->
         <div id="conversation-mode" class="hidden">
             <div class="prompt">What's present?</div>
@@ -271,7 +260,7 @@
             <div id="conversation-response" class="hidden"></div>
         </div>
         
-        <!-- Check-In Mode -->
+        <!-- Check-In Mode (removed from main flow, can add back later if needed) -->
         <div id="checkin-mode" class="hidden">
             <div class="prompt">How heavy did today feel?</div>
             <div class="subtext">1 = light, 5 = heavy. Saved privately, never shared.</div>
@@ -311,7 +300,6 @@
         const states = {
             initial: document.getElementById('initial-state'),
             quiet: document.getElementById('quiet-mode'),
-            company: document.getElementById('company-mode'),
             conversation: document.getElementById('conversation-mode'),
             checkin: document.getElementById('checkin-mode'),
             saved: document.getElementById('saved-state')
@@ -329,9 +317,7 @@
         function enterMode(mode) {
             showState(mode);
             
-            if (mode === 'company') {
-                // Just show company choice, no focus needed
-            } else if (mode === 'quiet') {
+            if (mode === 'quiet') {
                 document.querySelector('#quiet-form textarea')?.focus();
             } else if (mode === 'conversation') {
                 document.querySelector('#conversation-form textarea')?.focus();
