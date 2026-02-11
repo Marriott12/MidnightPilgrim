@@ -31,17 +31,15 @@ class ConversationService
      */
     public function getOrCreateSession(string $uuid, string $mode = 'quiet'): Session
     {
-        $session = Session::where('uuid', $uuid)
-            ->where('status', 'active')
-            ->first();
-
-        if (!$session) {
-            $session = Session::create([
-                'uuid' => $uuid,
+        // Use updateOrCreate to handle existing UUIDs with different status
+        $session = Session::updateOrCreate(
+            ['uuid' => $uuid],
+            [
                 'mode' => $mode,
                 'status' => 'active',
-            ]);
-        }
+                'updated_at' => now(),
+            ]
+        );
 
         return $session;
     }
@@ -134,16 +132,25 @@ class ConversationService
 
     /**
      * Determine if silence is more appropriate than words
+     * Company mode is conversational, Quiet mode embraces silence
      */
     private function shouldRespondWithSilence(Session $session, string $content): bool
     {
         $trimmed = strtolower(trim($content));
         $wordCount = str_word_count($content);
         
-        // Explicit silence requests
+        // Explicit silence requests (both modes)
         if (in_array($trimmed, ['pause', 'enough', 'silence', 'quiet', ''])) {
             return true;
         }
+        
+        // COMPANY MODE: Only silence on explicit request
+        // Company mode is meant to be conversational and responsive
+        if ($session->mode === 'company') {
+            return false; // Never auto-silence in company mode
+        }
+        
+        // QUIET MODE: Smart silence detection below
         
         // Very short acknowledgments
         if (in_array($trimmed, ['yeah', 'ok', 'mhm', 'mm', 'yes', 'no', 'sure', 'k'])) {
@@ -158,24 +165,22 @@ class ConversationService
         // Check for repetitive patterns (user circling same topic)
         $recentMessages = $session->getRecentMessages(5);
         if ($this->detectRepetitivePattern($content, $recentMessages)) {
-            return $session->mode === 'quiet' ? (rand(1, 2) === 1) : (rand(1, 4) === 1);
+            return rand(1, 2) === 1; // 50% silence
         }
         
         // Emotional saturation detection (excessive emotion words)
         if ($this->detectEmotionalSaturation($content)) {
-            return $session->mode === 'quiet' ? (rand(1, 3) === 1) : false;
+            return rand(1, 3) === 1; // 33% silence
         }
         
-        // Mode-based silence probability
-        if ($session->mode === 'quiet') {
-            // Higher silence chance late at night
-            if ($isLateNight || $isEarlyMorning) {
-                return rand(1, 3) === 1; // 33% silence
-            }
-            // Short messages in quiet mode often warrant silence
-            if ($wordCount <= 3) {
-                return rand(1, 2) === 1; // 50% silence
-            }
+        // Higher silence chance late at night
+        if ($isLateNight || $isEarlyMorning) {
+            return rand(1, 3) === 1; // 33% silence
+        }
+        
+        // Short messages in quiet mode often warrant silence
+        if ($wordCount <= 3) {
+            return rand(1, 2) === 1; // 50% silence
         }
         
         return false;
