@@ -81,7 +81,7 @@ class ConversationService
     }
 
     /**
-     * Send message and get response
+     * Send message and get response with smart silence detection
      */
     public function sendMessage(Session $session, string $content): ?string
     {
@@ -93,10 +93,16 @@ class ConversationService
             'created_at' => now(),
         ]);
 
-        // Check for pause/silence requests
-        $trimmed = strtolower(trim($content));
-        if (in_array($trimmed, ['pause', 'enough', ''])) {
-            return null; // Silence is valid
+        // Smart silence detection
+        if ($this->shouldRespondWithSilence($session, $content)) {
+            // Save explicit silence marker
+            Message::create([
+                'session_id' => $session->id,
+                'role' => 'assistant',
+                'content' => '[silence:acknowledge]',
+                'created_at' => now(),
+            ]);
+            return null;
         }
 
         // Build context
@@ -105,12 +111,20 @@ class ConversationService
         // Generate response based on mode
         $response = $this->generateResponse($session->mode, $content, $context);
 
-        // Save assistant message (even if null - silence is valid)
+        // Save assistant message
         if ($response !== null) {
             Message::create([
                 'session_id' => $session->id,
                 'role' => 'assistant',
                 'content' => $response,
+                'created_at' => now(),
+            ]);
+        } else {
+            // Explicit silence
+            Message::create([
+                'session_id' => $session->id,
+                'role' => 'assistant',
+                'content' => '[silence:reflect]',
                 'created_at' => now(),
             ]);
         }
@@ -119,55 +133,199 @@ class ConversationService
     }
 
     /**
-     * Build conversation context
+     * Determine if silence is more appropriate than words
+     */
+    private function shouldRespondWithSilence(Session $session, string $content): bool
+    {
+        $trimmed = strtolower(trim($content));
+        $wordCount = str_word_count($content);
+        
+        // Explicit silence requests
+        if (in_array($trimmed, ['pause', 'enough', 'silence', 'quiet', ''])) {
+            return true;
+        }
+        
+        // Very short acknowledgments
+        if (in_array($trimmed, ['yeah', 'ok', 'mhm', 'mm', 'yes', 'no', 'sure', 'k'])) {
+            return true;
+        }
+        
+        // Temporal awareness - late night prefers silence
+        $hour = now()->hour;
+        $isLateNight = $hour >= 23 || $hour <= 3;
+        $isEarlyMorning = $hour >= 4 && $hour <= 6;
+        
+        // Check for repetitive patterns (user circling same topic)
+        $recentMessages = $session->getRecentMessages(5);
+        if ($this->detectRepetitivePattern($content, $recentMessages)) {
+            return $session->mode === 'quiet' ? (rand(1, 2) === 1) : (rand(1, 4) === 1);
+        }
+        
+        // Emotional saturation detection (excessive emotion words)
+        if ($this->detectEmotionalSaturation($content)) {
+            return $session->mode === 'quiet' ? (rand(1, 3) === 1) : false;
+        }
+        
+        // Mode-based silence probability
+        if ($session->mode === 'quiet') {
+            // Higher silence chance late at night
+            if ($isLateNight || $isEarlyMorning) {
+                return rand(1, 3) === 1; // 33% silence
+            }
+            // Short messages in quiet mode often warrant silence
+            if ($wordCount <= 3) {
+                return rand(1, 2) === 1; // 50% silence
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Detect if user is circling the same topic repeatedly
+     */
+    private function detectRepetitivePattern(string $currentInput, $recentMessages): bool
+    {
+        if (!$recentMessages || $recentMessages->count() < 3) {
+            return false;
+        }
+        
+        $currentKeywords = $this->extractKeywords($currentInput);
+        $previousKeywords = [];
+        
+        foreach ($recentMessages->where('role', 'user') as $msg) {
+            $previousKeywords = array_merge($previousKeywords, $this->extractKeywords($msg->content));
+        }
+        
+        // Check overlap
+        $overlap = array_intersect($currentKeywords, $previousKeywords);
+        return count($overlap) >= min(2, count($currentKeywords));
+    }
+
+    /**
+     * Detect emotional saturation (overwhelm)
+     */
+    private function detectEmotionalSaturation(string $content): bool
+    {
+        $emotionWords = ['feel', 'feeling', 'feelings', 'overwhelming', 'overwhelmed', 'too much', 
+                         'cant', "can't", 'unable', 'difficult', 'hard', 'heavy', 'tired', 'exhausted'];
+        
+        $content = strtolower($content);
+        $count = 0;
+        
+        foreach ($emotionWords as $word) {
+            if (str_contains($content, $word)) {
+                $count++;
+            }
+        }
+        
+        return $count >= 3; // 3+ emotion indicators
+    }
+
+    /**
+     * Build conversation context with mode-aware intelligence
      */
     private function buildContext(Session $session, string $userInput): array
     {
+        // Context window varies by mode
+        $messageLimit = $session->mode === 'quiet' ? 5 : 15;
+        $noteLimit = $session->mode === 'quiet' ? 2 : 5;
+        
         // Get recent messages
-        $recentMessages = $session->getRecentMessages(10);
+        $recentMessages = $session->getRecentMessages($messageLimit);
 
-        // Get semantically similar notes (top 3)
-        $similarNotes = $this->findSimilarNotes($userInput, 3);
+        // Get semantically similar notes
+        $similarNotes = $this->findSimilarNotes($userInput, $noteLimit);
 
         return [
             'messages' => $recentMessages,
             'notes' => $similarNotes,
+            'mode' => $session->mode,
+            'time_of_day' => now()->hour,
         ];
     }
 
     /**
-     * Find semantically similar notes
-     * For now, uses simple keyword matching
-     * TODO: Implement proper embedding-based similarity
+     * Find semantically similar notes using TF-IDF
      */
     private function findSimilarNotes(string $input, int $limit = 3): array
     {
-        // Simple keyword matching for now
         $keywords = $this->extractKeywords($input);
         
         if (empty($keywords)) {
-            return Note::inRandomOrder()->limit($limit)->get()->map(function($note) {
-                return [
-                    'title' => $note->title,
-                    'excerpt' => $this->getExcerpt($note->content, 150),
-                ];
-            })->toArray();
+            // Prefer recent reflective notes over random
+            return Note::whereIn('visibility', ['reflective', 'private'])
+                ->latest()
+                ->limit($limit)
+                ->get()
+                ->map(function($note) {
+                    return [
+                        'title' => $note->title,
+                        'excerpt' => $this->getExcerpt($note->body, 150),
+                        'type' => $note->type,
+                    ];
+                })->toArray();
         }
 
-        $notes = Note::where(function($query) use ($keywords) {
-            foreach ($keywords as $keyword) {
-                $query->orWhere('content', 'LIKE', "%{$keyword}%");
+        // TF-IDF based scoring
+        $notes = Note::all();
+        $scored = [];
+        
+        foreach ($notes as $note) {
+            $score = $this->calculateTfIdfScore($keywords, $note->body ?? '', $note);
+            if ($score > 0) {
+                $scored[] = [
+                    'note' => $note,
+                    'score' => $score,
+                ];
             }
-        })
-        ->limit($limit)
-        ->get();
+        }
 
-        return $notes->map(function($note) {
+        // Sort by score descending
+        usort($scored, fn($a, $b) => $b['score'] <=> $a['score']);
+        
+        // Take top results
+        $topNotes = array_slice($scored, 0, $limit);
+        
+        return array_map(function($item) {
             return [
-                'title' => $note->title,
-                'excerpt' => $this->getExcerpt($note->content, 150),
+                'title' => $item['note']->title,
+                'excerpt' => $this->getExcerpt($item['note']->body, 150),
+                'type' => $item['note']->type,
             ];
-        })->toArray();
+        }, $topNotes);
+    }
+
+    /**
+     * Calculate TF-IDF score for note relevance
+     */
+    private function calculateTfIdfScore(array $keywords, string $content, Note $note): float
+    {
+        $content = strtolower($content);
+        $contentWords = str_word_count($content, 1);
+        $score = 0;
+        
+        foreach ($keywords as $keyword) {
+            // Term frequency in document
+            $tf = substr_count($content, strtolower($keyword)) / max(count($contentWords), 1);
+            
+            // Inverse document frequency (simplified)
+            $idf = log(1 + (Note::count() / max(1, Note::where('body', 'LIKE', "%{$keyword}%")->count())));
+            
+            $score += $tf * $idf;
+        }
+        
+        // Boost recent notes slightly
+        $daysSinceCreation = now()->diffInDays($note->created_at);
+        $recencyBoost = 1 / (1 + ($daysSinceCreation / 30)); // Decay over 30 days
+        
+        // Boost reflective notes
+        $visibilityBoost = $note->visibility === 'reflective' ? 1.2 : 1.0;
+        
+        // Poem vs note context
+        $typeBoost = $note->type === 'poem' ? 1.1 : 1.0;
+        
+        return $score * $recencyBoost * $visibilityBoost * $typeBoost;
     }
 
     /**
@@ -217,13 +375,21 @@ class ConversationService
     }
 
     /**
-     * Generate AI-powered response
+     * Generate AI-powered response with temporal awareness
      */
     private function generateAIResponse(string $mode, string $userInput, array $context): ?string
     {
-        $systemPrompt = $this->getSystemPrompt($mode);
+        $hour = $context['time_of_day'] ?? now()->hour;
+        $systemPrompt = $this->getSystemPrompt($mode, $hour);
         $conversationHistory = $this->formatMessages($context['messages']);
         $noteContext = $this->formatNotes($context['notes']);
+
+        // Adjust parameters based on time
+        $isLateNight = $hour >= 23 || $hour <= 3;
+        $maxTokens = $mode === 'quiet' ? 50 : 150;
+        if ($isLateNight) {
+            $maxTokens = (int)($maxTokens * 0.7); // 30% shorter at night
+        }
 
         try {
             /** @var \Illuminate\Http\Client\Response $response */
@@ -238,7 +404,7 @@ class ConversationService
                     ['role' => 'user', 'content' => $userInput],
                 ],
                 'temperature' => $mode === 'quiet' ? 0.7 : 0.8,
-                'max_tokens' => $mode === 'quiet' ? 50 : 150,
+                'max_tokens' => $maxTokens,
             ]);
 
             if ($response->status() === 200) {
@@ -254,16 +420,26 @@ class ConversationService
     }
 
     /**
-     * Get system prompt for mode
+     * Get system prompt for mode with temporal awareness
      */
-    private function getSystemPrompt(string $mode): string
+    private function getSystemPrompt(string $mode, int $hour): string
     {
+        $isLateNight = $hour >= 23 || $hour <= 3;
+        $isEarlyMorning = $hour >= 4 && $hour <= 6;
+        
+        $temporalContext = '';
+        if ($isLateNight) {
+            $temporalContext = " It's late night - be even quieter and briefer. Silence is often best.";
+        } elseif ($isEarlyMorning) {
+            $temporalContext = " It's early morning - be gentle and minimal.";
+        }
+        
         if ($mode === 'quiet') {
-            return "You are a quiet, reflective presence. Respond very briefly (1-2 sentences max). Ask questions rarely. Often, silence is better than words. Never reference memories or analyze. Never be therapeutic or interpretive. Anchor in the user's own written notes when relevant (unlabeled). No engagement language, no cheerleading.";
+            return "You are a quiet, reflective presence. Respond very briefly (1-2 sentences max). Ask questions rarely. Often, silence is better than words. Never reference memories or analyze. Never be therapeutic or interpretive. Anchor in the user's own written notes when relevant (unlabeled). No engagement language, no cheerleading." . $temporalContext;
         }
 
         // company mode
-        return "You are a gentle companion. Respond in 2-3 sentences. Ask one open-ended question maximum per response. Mirror the user's tone. Use context from their notes (unlabeled) to create connection. Never reference 'memories' or analyze them. Never be therapeutic. No engagement language. Restraint over capability.";
+        return "You are a gentle companion. Respond in 2-3 sentences. Ask one open-ended question maximum per response. Mirror the user's tone. Use context from their notes (unlabeled) to create connection. Never reference 'memories' or analyze them. Never be therapeutic. No engagement language. Restraint over capability." . $temporalContext;
     }
 
     /**
@@ -301,49 +477,120 @@ class ConversationService
     }
 
     /**
-     * Generate rule-based response (fallback when no AI)
+     * Generate rule-based response with variation and user's own words
      */
     private function generateRuleBasedResponse(string $mode, string $userInput, array $context): ?string
     {
-        // In quiet mode, prefer silence
-        if ($mode === 'quiet' && rand(1, 3) === 1) {
-            return null; // 33% silence in quiet mode
+        $hour = $context['time_of_day'] ?? now()->hour;
+        $isLateNight = $hour >= 23 || $hour <= 3;
+        
+        // In quiet mode, prefer silence (higher at night)
+        if ($mode === 'quiet') {
+            $silenceChance = $isLateNight ? 2 : 3; // 50% vs 33%
+            if (rand(1, $silenceChance) === 1) {
+                return null;
+            }
         }
 
         // Check if we have relevant note context
         if (!empty($context['notes'])) {
             $note = $context['notes'][0];
             
+            // Try using a short line from their notes as response
+            $shortLine = $this->extractMeaningfulLine($note['excerpt']);
+            
+            if ($shortLine && $mode === 'quiet') {
+                // Just reflect their own words back
+                return '"' . $shortLine . '"';
+            } elseif ($shortLine && $mode === 'company') {
+                // Gentle connection using their words
+                $responses = [
+                    '"' . $shortLine . '"',
+                    '"' . $shortLine . '" - does this connect?',
+                    'From your notes: "' . $shortLine . '"',
+                ];
+                return $responses[array_rand($responses)];
+            }
+            
+            // Fallback to excerpt
             if ($mode === 'quiet') {
-                // Just reflect the note
                 return '"' . Str::limit($note['excerpt'], 80) . '"';
             } else {
-                // Company mode - add gentle connection
                 return '"' . Str::limit($note['excerpt'], 100) . '" - Does this resonate with what you\'re feeling?';
             }
         }
 
-        // No context, generic responses
+        // No context - use mirroring or minimal acknowledgment
         if ($mode === 'quiet') {
+            // Try to mirror a phrase from their input
+            $mirror = $this->extractMirrorPhrase($userInput);
+            if ($mirror) {
+                return $mirror . '.';
+            }
+            
             $quietResponses = [
                 'I hear you.',
                 'Noted.',
                 null, // Silence is valid
                 'Mm.',
+                '...',
             ];
             
             return $quietResponses[array_rand($quietResponses)];
         }
 
-        // Company mode - gentle prompts
+        // Company mode - varied gentle prompts
         $companyResponses = [
             'Tell me more about that.',
             'What does that feel like?',
             'I\'m listening.',
             'Go on.',
+            'What else?',
+            'And?',
         ];
 
         return $companyResponses[array_rand($companyResponses)];
+    }
+
+    /**
+     * Extract a meaningful short line from text
+     */
+    private function extractMeaningfulLine(string $text): ?string
+    {
+        $sentences = preg_split('/[.!?]+\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
+        
+        foreach ($sentences as $sentence) {
+            $sentence = trim($sentence);
+            $wordCount = str_word_count($sentence);
+            
+            // Perfect short line: 4-12 words, not a question
+            if ($wordCount >= 4 && $wordCount <= 12 && !str_ends_with($sentence, '?')) {
+                return $sentence;
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Extract a phrase from user input to mirror back
+     */
+    private function extractMirrorPhrase(string $input): ?string
+    {
+        // Look for meaningful phrases (not questions)
+        if (str_contains($input, '?')) {
+            return null;
+        }
+        
+        $words = explode(' ', $input);
+        if (count($words) >= 3 && count($words) <= 6) {
+            // Take middle portion
+            $start = (int)(count($words) / 3);
+            $length = min(4, count($words) - $start);
+            return implode(' ', array_slice($words, $start, $length));
+        }
+        
+        return null;
     }
 
     /**

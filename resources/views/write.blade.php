@@ -171,6 +171,9 @@
             font-size: 1.05rem;
             line-height: 1.7;
             resize: vertical;
+            white-space: pre-wrap; /* Preserve line breaks and spaces */
+            word-wrap: break-word; /* Wrap long lines */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         input[type="text"]::placeholder,

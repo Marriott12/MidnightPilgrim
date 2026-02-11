@@ -171,6 +171,9 @@
             font-size: 1.05rem;
             line-height: 1.7;
             resize: vertical;
+            white-space: pre-wrap; /* Preserve line breaks and spaces */
+            word-wrap: break-word; /* Wrap long lines */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         input[type="text"]::placeholder,
@@ -186,6 +189,78 @@
             display: flex;
             gap: 1rem;
             align-items: center;
+        }
+        
+        /* Silence mode: hide navigation and counts */
+        body.silence-mode nav,
+        body.silence-mode #word-count,
+        body.silence-mode #char-count,
+        body.silence-mode .actions {
+            display: none;
+        }
+        
+        body.silence-mode .container {
+            padding-top: 2rem;
+        }
+        
+        .silence-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: transparent;
+            border: 1px solid #222;
+            color: #444;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+            z-index: 1000;
+        }
+        
+        .silence-toggle:hover {
+            border-color: #333;
+            color: #666;
+        }
+        
+        /* Silence feature controls */
+        .silence-controls {
+            opacity: 0.3;
+            transition: opacity 0.3s;
+        }
+        
+        .silence-controls:hover {
+            opacity: 1;
+        }
+        
+        .silence-btn {
+            background: transparent;
+            border: 1px solid #1a1a1a;
+            color: #444;
+            padding: 0.6rem;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .silence-btn:hover {
+            border-color: #333;
+            background: #0d0d0d;
+        }
+        
+        .silence-btn.active {
+            border-color: #8b8baf;
+            color: #8b8baf;
+        }
+
+        .hidden {
+            display: none !important;
         }
 
         button {
@@ -272,17 +347,47 @@
     </style>
 </head>
 <body>
+    <button class="silence-toggle" onclick="toggleSilence()">Silence</button>
+    
     <nav>
         <div>
             <a href="/" style="color: #999; font-weight: 500;">Midnight Pilgrim</a>
+            <span style="margin-left: 1.5rem; font-size: 0.85rem; color: #444;"><?php echo e(now()->format('F j')); ?></span>
         </div>
         <div style="display: flex; gap: 1.5rem;">
             <a href="/write" class="current">Write</a>
             <a href="/read">Read</a>
+            <a href="/conversation">Conversation</a>
             <a href="/adjacent-view">Adjacent</a>
             <a href="/sit">Sit</a>
         </div>
     </nav>
+
+    <!-- Silence Features -->
+    <div class="silence-controls" style="position: fixed; bottom: 1rem; left: 1rem; z-index: 100; display: flex; gap: 0.5rem; flex-direction: column;">
+        <button type="button" class="silence-btn" onclick="toggleWriteOnly()" title="Write without AI processing">
+            <span id="write-only-indicator">✍️</span>
+        </button>
+        <button type="button" class="silence-btn" onclick="toggleNoArchive()" title="Do not keep this">
+            <span id="no-archive-indicator">🔥</span>
+        </button>
+        <button type="button" class="silence-btn" onclick="openStillness()" title="Timed stillness">
+            <span>🕯️</span>
+        </button>
+    </div>
+    
+    <!-- Timed Stillness Overlay -->
+    <div id="stillness-overlay" class="hidden" style="position: fixed; inset: 0; background: #0a0a0a; z-index: 9999; display: flex; align-items: center; justify-content: center;">
+        <div style="text-align: center; color: #444;">
+            <div id="stillness-text" style="font-size: 0.9rem; margin-bottom: 2rem;">Choose stillness duration</div>
+            <div style="display: flex; gap: 1.5rem; justify-content: center; margin-bottom: 2rem;" id="stillness-choices">
+                <button onclick="enterStillness(60)" class="silence-btn">1 min</button>
+                <button onclick="enterStillness(180)" class="silence-btn">3 min</button>
+                <button onclick="enterStillness(300)" class="silence-btn">5 min</button>
+            </div>
+            <button onclick="window.location.href='/'" class="silence-btn" style="font-size: 0.8rem; color: #333;">Leave quietly</button>
+        </div>
+    </div>
 
     <div class="container">
         <div class="editor-pane">
@@ -292,6 +397,24 @@
                 <?php echo csrf_field(); ?>
                 <?php if(isset($isEditing) && $isEditing): ?>
                 <?php echo method_field('PUT'); ?>
+            <?php endif; ?>
+            
+            <?php if($errors->any()): ?>
+                <div style="background: #2a1a1a; border: 1px solid #aa3333; border-radius: 4px; padding: 1rem; margin-bottom: 1.5rem; color: #ff6666;">
+                    <strong style="display: block; margin-bottom: 0.5rem;">Error:</strong>
+                    <ul style="list-style: none; padding: 0; margin:0;">
+                        <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <li style="margin: 0.25rem 0;"><?php echo e($error); ?></li>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+            
+            <?php if(session('success')): ?>
+                <div style="background: #1a2a1a; border: 1px solid #33aa33; border-radius: 4px; padding: 1rem; margin-bottom: 1.5rem; color: #66ff66;">
+                    <?php echo e(session('success')); ?>
+
+                </div>
             <?php endif; ?>
             
             <label for="title" class="sr-only">Note title</label>
@@ -331,6 +454,10 @@
             
                 <!-- Hidden field to pass edit state to JavaScript -->
                 <input type="hidden" id="is-editing" value="<?php echo e(isset($isEditing) && $isEditing ? '1' : '0'); ?>">
+                
+                <!-- Silence feature flags -->
+                <input type="hidden" id="write-only-input" name="write_only" value="0">
+                <input type="hidden" id="no-archive-input" name="no_archive" value="0">
             </form>
         </div>
         
@@ -510,6 +637,105 @@
 
         // Initialize word count
         updateWordCount();
+        
+        // Silence mode toggle
+        function toggleSilence() {
+            document.body.classList.toggle('silence-mode');
+            const isSilent = document.body.classList.contains('silence-mode');
+            localStorage.setItem('silenceMode', isSilent ? 'true' : 'false');
+            
+            // Update button text
+            document.querySelector('.silence-toggle').textContent = isSilent ? 'Return' : 'Silence';
+        }
+        
+        // Restore silence mode from localStorage
+        if (localStorage.getItem('silenceMode') === 'true') {
+            document.body.classList.add('silence-mode');
+            document.querySelector('.silence-toggle').textContent = 'Return';
+        }
+        
+        // Silence Features
+        let writeOnlyMode = false;
+        let noArchiveMode = false;
+        let stillnessTimer = null;
+        let escPressTime = null;
+        
+        function toggleWriteOnly() {
+            writeOnlyMode = !writeOnlyMode;
+            const btn = document.getElementById('write-only-indicator').parentElement;
+            btn.classList.toggle('active');
+            document.getElementById('write-only-input').value = writeOnlyMode ? '1' : '0';
+            localStorage.setItem('writeOnlyMode', writeOnlyMode ? 'true' : 'false');
+        }
+        
+        function toggleNoArchive() {
+            noArchiveMode = !noArchiveMode;
+            const btn = document.getElementById('no-archive-indicator').parentElement;
+            btn.classList.toggle('active');
+            document.getElementById('no-archive-input').value = noArchiveMode ? '1' : '0';
+            localStorage.setItem('noArchiveMode', noArchiveMode ? 'true' : 'false');
+        }
+        
+        function openStillness() {
+            document.getElementById('stillness-overlay').classList.remove('hidden');
+        }
+        
+        function closeStillness() {
+            document.getElementById('stillness-overlay').classList.add('hidden');
+            if (stillnessTimer) {
+                clearTimeout(stillnessTimer);
+                stillnessTimer = null;
+            }
+        }
+        
+        function enterStillness(seconds) {
+            // Hide choices, show inert state
+            document.getElementById('stillness-choices').style.display = 'none';
+            document.getElementById('stillness-text').textContent = '';
+            
+            // After duration, optionally show closing line
+            stillnessTimer = setTimeout(() => {
+                if (localStorage.getItem('stillnessClosingLine') === 'true') {
+                    document.getElementById('stillness-text').textContent = 'Still here.';
+                    setTimeout(closeStillness, 2000);
+                } else {
+                    closeStillness();
+                }
+            }, seconds * 1000);
+        }
+        
+        // Panic Exit: Long-press ESC to immediately clear and exit
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (!escPressTime) {
+                    escPressTime = Date.now();
+                }
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Escape' && escPressTime) {
+                const duration = Date.now() - escPressTime;
+                if (duration > 800) {
+                    // Panic exit: clear screen immediately
+                    document.body.innerHTML = '<div style="background: #0a0a0a; min-height: 100vh;"></div>';
+                    setTimeout(() => window.location.href = '/', 100);
+                }
+                escPressTime = null;
+            }
+        });
+        
+        // Restore states from localStorage
+        if (localStorage.getItem('writeOnlyMode') === 'true') {
+            writeOnlyMode = true;
+            document.getElementById('write-only-indicator').parentElement.classList.add('active');
+            document.getElementById('write-only-input').value = '1';
+        }
+        if (localStorage.getItem('noArchiveMode') === 'true') {
+            noArchiveMode = true;
+            document.getElementById('no-archive-indicator').parentElement.classList.add('active');
+            document.getElementById('no-archive-input').value = '1';
+        }
     </script>
 </body>
 </html>
