@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Note;
 use App\Services\MarkdownIngestionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\Yaml\Yaml;
@@ -77,28 +78,47 @@ class WriteController extends Controller
         // Build markdown with frontmatter (including silence flags)
         $markdown = $this->buildMarkdown($title, $slug, $type, $visibility, $body, $writeOnly, $noArchive);
 
-        // Store as immutable markdown (Phase 1)
-        Storage::disk('local')->put($path, $markdown);
+        try {
+            // Store as immutable markdown (Phase 1)
+            $stored = Storage::disk('local')->put($path, $markdown);
+            
+            if (!$stored) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['error' => 'Failed to save markdown file.']);
+            }
 
-        // Optional: Create database record for querying
-        $note = Note::create([
-            'title' => $title,
-            'slug' => $slug,
-            'type' => $type,
-            'path' => $path,
-            'body' => Str::limit($body, 500), // Store excerpt only
-            'visibility' => $visibility,
-            'write_only' => $writeOnly,
-            'no_archive' => $noArchive,
-        ]);
+            // Optional: Create database record for querying
+            $note = Note::create([
+                'title' => $title,
+                'slug' => $slug,
+                'type' => $type,
+                'path' => $path,
+                'body' => Str::limit($body, 500), // Store excerpt only
+                'visibility' => $visibility,
+                'write_only' => $writeOnly,
+                'no_archive' => $noArchive,
+            ]);
 
-        // PHASE 2: Auto-extract quotes UNLESS write_only mode is enabled
-        if (!$writeOnly) {
-            $quoteEngine = app(\App\Services\QuoteEngine::class);
-            $quoteEngine->extractFromNote($note);
+            // PHASE 2: Auto-extract quotes UNLESS write_only mode is enabled
+            if (!$writeOnly) {
+                $quoteEngine = app(\App\Services\QuoteEngine::class);
+                $quoteEngine->extractFromNote($note);
+            }
+
+            return redirect('/read')->with('success', 'Saved quietly.');
+            
+        } catch (\Exception $e) {
+            Log::error('Note save failed: ' . $e->getMessage(), [
+                'title' => $title,
+                'slug' => $slug,
+                'exception' => $e,
+            ]);
+            
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to save note: ' . $e->getMessage()]);
         }
-
-        return redirect('/read')->with('success', 'Saved quietly.');
     }
 
     /**

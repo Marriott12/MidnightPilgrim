@@ -15,13 +15,13 @@ use Carbon\Carbon;
  * 
  * CAPABILITIES:
  * - Extract manually-marked quotes (lines starting with '>')
+ * - Auto-generate at least one quote per note (if no manual quotes)
  * - Support explicit manual promotion by user
  * - Suggest candidate quotes using heuristics (not AI)
  * - Store as immutable markdown in storage/quotes/
  * - Preserve source references and context
  * 
  * PHASE 2 WILL NEVER:
- * - Auto-promote quotes without user choice
  * - Use sentiment analysis or AI scoring
  * - Optimize or rank by engagement
  * - Modify source notes or poems
@@ -33,13 +33,19 @@ use Carbon\Carbon;
  * - Whitespace isolation (paragraph breaks indicate weight)
  * - Quote marks or emphasis (user intent signals)
  * 
+ * AUTO-GENERATION:
+ * - Triggered only when no manual quotes ('>') are found
+ * - Marked with confidence: 'auto' (vs 'manual' for explicit marks)
+ * - Uses same heuristics as suggestions
+ * 
  * All quotes default to 'private' visibility (Phase 0).
  */
 class QuoteEngine
 {
     /**
      * Extract manually-marked quotes from a note.
-     * Only lines starting with '>' are considered.
+     * Lines starting with '>' are extracted as explicit quotes.
+     * If no explicit quotes found, automatically generates at least one quote.
      * 
      * @param Note $note
      * @return array Array of created Quote models
@@ -55,6 +61,7 @@ class QuoteEngine
         $lines = explode("\n", $markdown);
         $quotes = [];
 
+        // First pass: Extract manually-marked quotes (lines starting with '>')
         foreach ($lines as $line) {
             $line = trim($line);
 
@@ -64,6 +71,19 @@ class QuoteEngine
                 if ($this->isValidQuote($text)) {
                     $quotes[] = $this->storeQuote($note, $text);
                 }
+            }
+        }
+
+        // If no manual quotes found, automatically extract at least one
+        if (empty($quotes)) {
+            $suggestions = $this->suggestQuotes($note);
+            
+            if (!empty($suggestions)) {
+                // Take the first suggestion (could be enhanced with better selection logic)
+                $bestSuggestion = $suggestions[0];
+                $quotes[] = $this->storeQuote($note, $bestSuggestion['text'], [
+                    'confidence' => 'auto'
+                ]);
             }
         }
 
@@ -111,7 +131,7 @@ class QuoteEngine
         $suggestions = [];
 
         // Find sentences that could be quotes
-        $sentences = preg_split('/[.!?]+\s+/', $content);
+        $sentences = preg_split('/[.!?]+\s+/', $content, -1, PREG_SPLIT_NO_EMPTY);
         
         foreach ($sentences as $sentence) {
             $sentence = trim(strip_tags($sentence));
@@ -123,6 +143,31 @@ class QuoteEngine
                         'text' => $sentence,
                         'word_count' => str_word_count($sentence),
                     ];
+                }
+            }
+        }
+
+        // Fallback: if no sentences qualify, try to extract meaningful lines
+        if (empty($suggestions)) {
+            $lines = explode("\n", $content);
+            foreach ($lines as $line) {
+                $line = trim(strip_tags($line));
+                
+                // Skip empty lines, markdown headers, and list items
+                if (empty($line) || Str::startsWith($line, ['#', '-', '*', '>', '```'])) {
+                    continue;
+                }
+                
+                // Check if line has reasonable length (relaxed criteria for fallback)
+                $wordCount = str_word_count($line);
+                if ($wordCount >= 4 && $wordCount <= 60) {
+                    $suggestions[] = [
+                        'text' => $line,
+                        'word_count' => $wordCount,
+                    ];
+                    
+                    // Take first valid line as fallback
+                    break;
                 }
             }
         }

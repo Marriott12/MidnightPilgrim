@@ -256,6 +256,10 @@
             color: #8b8baf;
         }
 
+        .hidden {
+            display: none !important;
+        }
+
         button {
             background: transparent;
             border: 1px solid #333;
@@ -350,6 +354,7 @@
         <div style="display: flex; gap: 1.5rem;">
             <a href="/write" class="current">Write</a>
             <a href="/read">Read</a>
+            <a href="/conversation">Conversation</a>
             <a href="/adjacent-view">Adjacent</a>
             <a href="/sit">Sit</a>
         </div>
@@ -377,7 +382,7 @@
                 <button onclick="enterStillness(180)" class="silence-btn">3 min</button>
                 <button onclick="enterStillness(300)" class="silence-btn">5 min</button>
             </div>
-            <button onclick="closeStillness()" class="silence-btn" style="font-size: 0.8rem; color: #333;">Leave quietly</button>
+            <button onclick="window.location.href='/'" class="silence-btn" style="font-size: 0.8rem; color: #333;">Leave quietly</button>
         </div>
     </div>
 
@@ -389,6 +394,23 @@
                 @csrf
                 @if(isset($isEditing) && $isEditing)
                 @method('PUT')
+            @endif
+            
+            @if($errors->any())
+                <div style="background: #2a1a1a; border: 1px solid #aa3333; border-radius: 4px; padding: 1rem; margin-bottom: 1.5rem; color: #ff6666;">
+                    <strong style="display: block; margin-bottom: 0.5rem;">Error:</strong>
+                    <ul style="list-style: none; padding: 0; margin:0;">
+                        @foreach($errors->all() as $error)
+                            <li style="margin: 0.25rem 0;">{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            
+            @if(session('success'))
+                <div style="background: #1a2a1a; border: 1px solid #33aa33; border-radius: 4px; padding: 1rem; margin-bottom: 1.5rem; color: #66ff66;">
+                    {{ session('success') }}
+                </div>
             @endif
             
             <label for="title" class="sr-only">Note title</label>

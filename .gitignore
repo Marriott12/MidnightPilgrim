@@ -1,0 +1,55 @@
+# Laravel
+/vendor/
+/node_modules/
+/.idea/
+/.vscode/
+/.vagrant/
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Storage - keep structure but not content
+/storage/*.key
+/storage/logs/*.log
+/storage/framework/cache/**
+/storage/framework/sessions/**
+/storage/framework/views/**
+!/storage/framework/cache/.gitkeep
+!/storage/framework/sessions/.gitkeep
+!/storage/framework/views/.gitkeep
+
+# Database
+database.sqlite
+database.sqlite-journal
+*.sqlite
+*.sqlite-journal
+
+# User content - vault, quotes, thoughts
+/storage/app/private/vault/**
+/storage/app/private/quotes/**
+/storage/app/private/thoughts/**
+/storage/vault/**
+/storage/quotes/**
+/storage/thoughts/**
+
+# Cache and temp
+/storage/app/cache/**
+/bootstrap/cache/**
+!.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+*.swp
+*.swo
+*~
+.project
+.settings/

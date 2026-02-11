@@ -97,6 +97,17 @@ Route::middleware([\App\Http\Middleware\SetPublicMode::class])->group(function (
     Route::get('/silence', [\App\Http\Controllers\WaystoneController::class, 'silence']);
 });
 
+// Conversation - silence-first, anonymous
+Route::get('/conversation', [\App\Http\Controllers\ConversationController::class, 'index'])->name('conversation.index');
+Route::post('/conversation/resume', [\App\Http\Controllers\ConversationController::class, 'resume'])->name('conversation.resume');
+Route::post('/conversation/begin', [\App\Http\Controllers\ConversationController::class, 'beginNew'])->name('conversation.begin');
+Route::post('/conversation/send', [\App\Http\Controllers\ConversationController::class, 'send'])->name('conversation.send');
+Route::post('/conversation/random', [\App\Http\Controllers\ConversationController::class, 'random'])->name('conversation.random');
+Route::post('/conversation/thoughts', [\App\Http\Controllers\ConversationController::class, 'thoughts'])->name('conversation.thoughts');
+Route::post('/conversation/adjacent', [\App\Http\Controllers\ConversationController::class, 'adjacent'])->name('conversation.adjacent');
+Route::post('/conversation/mode', [\App\Http\Controllers\ConversationController::class, 'changeMode'])->name('conversation.mode');
+Route::post('/conversation/close', [\App\Http\Controllers\ConversationController::class, 'close'])->name('conversation.close');
+
 // Sit (Mental Health Companion) - minimal, privacy-first
 Route::get('/sit', [\App\Http\Controllers\CompanionController::class, 'show']);
 Route::post('/sit/begin', [\App\Http\Controllers\CompanionController::class, 'begin']);

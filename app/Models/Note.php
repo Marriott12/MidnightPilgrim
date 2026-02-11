@@ -92,10 +92,16 @@ class Note extends Model
         'tags',
         'confidence',
         'visibility',
+        'write_only',
+        'no_archive',
+        'embedding',
     ];
 
     protected $casts = [
         'tags' => 'array',
+        'embedding' => 'array',
+        'write_only' => 'boolean',
+        'no_archive' => 'boolean',
     ];
 
     /**

@@ -177,6 +177,7 @@
         <div style="display: flex; gap: 1.5rem;">
             <a href="/write">Write</a>
             <a href="/read" class="current">Read</a>
+            <a href="/conversation">Conversation</a>
             <a href="/adjacent-view">Adjacent</a>
             <a href="/sit">Sit</a>
             <a href="/export/vault" style="color: #666; font-size: 0.85rem; align-self: center;">Export All</a>
