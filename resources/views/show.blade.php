@@ -58,6 +58,8 @@
             color: #999;
             font-size: 1.05rem;
             line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
 
         .content p {
