@@ -4,20 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Session Model - CONVERSATION IDENTITY
  * 
- * SILENCE-FIRST ARCHITECTURE
- * --------------------------
- * Sessions are anonymous, ephemeral, and local-first.
+ * ADAPTIVE CONVERSATIONAL SYSTEM
+ * ------------------------------
+ * Sessions track emotional patterns and adapt conversation style.
  * 
- * MIDNIGHT PILGRIM WILL NEVER:
- * - Link sessions to IP addresses
- * - Track engagement metrics
- * - Browse chat history across sessions
- * - Gamify streaks or sentiment
- * - Store analytics
+ * Privacy-conscious architecture:
+ * - Uses soft fingerprinting (hashed IP + user agent)
+ * - Stores metrics, not full conversations
+ * - Can be deleted on user request
  * 
  * Mode: quiet (minimal) or company (gentle)
  * Status: active (resumable) or closed (finished)
@@ -28,14 +27,51 @@ class Session extends Model
     
     protected $fillable = [
         'uuid',
+        'user_profile_id',
+        'fingerprint',
         'mode',
         'status',
+        'session_intensity',
+        'absolutist_count',
+        'self_criticism_count',
+        'detected_topics',
+        'emotional_tone',
+        'message_count',
+        'last_message_at',
+        'vagueness_count',
+        'abstraction_count',
+        'avoidance_detected_count',
+        'topics_avoided',
+        'grandiosity_detected',
+        'self_mythologizing_detected',
+        'escalation_tone',
     ];
 
     protected $casts = [
+        'detected_topics' => 'array',
+        'topics_avoided' => 'array',
+        'session_intensity' => 'float',
+        'emotional_tone' => 'float',
+        'absolutist_count' => 'integer',
+        'self_criticism_count' => 'integer',
+        'message_count' => 'integer',
+        'vagueness_count' => 'integer',
+        'abstraction_count' => 'integer',
+        'avoidance_detected_count' => 'integer',
+        'grandiosity_detected' => 'boolean',
+        'self_mythologizing_detected' => 'boolean',
+        'last_message_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Get the user profile for this session
+     */
+    public function userProfile(): BelongsTo
+    {
+        return $this->belongsTo(UserProfile::class);
+    }
 
     /**
      * Get all messages in this session
@@ -43,6 +79,14 @@ class Session extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class);
+    }
+
+    /**
+     * Get emotional snapshot for this session
+     */
+    public function emotionalSnapshot(): BelongsTo
+    {
+        return $this->belongsTo(EmotionalSnapshot::class);
     }
 
     /**

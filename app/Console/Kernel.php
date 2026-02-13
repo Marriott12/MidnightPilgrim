@@ -26,7 +26,30 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
+        // Daily thought generation (optional)
         // $schedule->command('pilgrim:generate-daily-thought')->daily();
+        
+        // DISCIPLINE CONTRACT ENFORCEMENT - Check deadlines hourly
+        $schedule->call(function () {
+            $service = app(\App\Services\DisciplineContractService::class);
+            $contracts = \App\Models\DisciplineContract::where('status', 'active')->get();
+            
+            foreach ($contracts as $contract) {
+                $service->checkDeadlines($contract);
+            }
+        })->hourly()->name('discipline:check-deadlines');
+
+        // MONTHLY RELEASE ENFORCEMENT - Check daily at 18:30
+        $schedule->call(function () {
+            $service = app(\App\Services\DisciplineContractService::class);
+            $service->checkMonthlyReleaseDeadlines();
+        })->dailyAt('18:30')->name('discipline:check-monthly-releases');
+
+        // CONTRACT FINALIZATION - Check daily at 00:30
+        $schedule->call(function () {
+            $service = app(\App\Services\DisciplineContractService::class);
+            $service->finalizeCompletedContracts();
+        })->dailyAt('00:30')->name('discipline:finalize-contracts');
     }
 
     /**

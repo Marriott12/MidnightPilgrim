@@ -1,0 +1,3 @@
+@echo off
+echo Starting Midnight Pilgrim server with PHP 8.2.26...
+C:\wamp64\bin\php\php8.2.26\php.exe artisan serve
