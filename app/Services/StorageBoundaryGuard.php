@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Storage;
  * ---------------------------
  * - Automatically publish private content
  * - Include mental health data in exports
- * - Sync content to cloud storage
+ * - Sync content to cloud storage **without explicit, opt-in, end-to-end encrypted user consent**
  * - Share data with third-party services
  */
 class StorageBoundaryGuard

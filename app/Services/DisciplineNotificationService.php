@@ -30,6 +30,9 @@ class DisciplineNotificationService
         $contracts = DisciplineContract::where('status', 'active')->get();
 
         foreach ($contracts as $contract) {
+            if (!$contract instanceof DisciplineContract) {
+                $contract = DisciplineContract::find($contract->id);
+            }
             $contractNotifications = $this->checkContractNotifications($contract);
             $notifications = array_merge($notifications, $contractNotifications);
         }
@@ -230,7 +233,7 @@ class DisciplineNotificationService
         // - In-app toast
         
         // For now, just log
-        \Log::info("Notification for profile {$profile->id}: {$notification['type']} - {$notification['message']}");
+        Log::info("Notification for profile {$profile->id}: {$notification['type']} - {$notification['message']}");
     }
 
     /**

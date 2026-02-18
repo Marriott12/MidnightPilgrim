@@ -114,6 +114,26 @@ Route::post('/sit/begin', [\App\Http\Controllers\CompanionController::class, 'be
 Route::post('/sit/respond', [\App\Http\Controllers\CompanionController::class, 'respond']);
 Route::post('/sit/check-in', [\App\Http\Controllers\CompanionController::class, 'storeCheckIn']);
 
+// Local analytics dashboard (opt-in, local-only)
+Route::get('/analytics', function () {
+    return view('analytics');
+});
+
+// Plugin/Extension manager (experimental)
+Route::get('/plugins', function () {
+    return view('plugin_manager');
+});
+
+// AI fallback settings
+Route::get('/ai-fallback', function () {
+    return view('ai_fallback');
+});
+
+// Onboarding / first-run experience
+Route::get('/onboarding', function () {
+    return view('onboarding');
+});
+
 // Sharing ritual
 // Short-circuit share attempts for non-shareable types to avoid session/middleware
 Route::post('/share/checkin/{id}', function () {

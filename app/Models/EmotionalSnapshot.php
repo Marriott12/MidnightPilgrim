@@ -26,6 +26,32 @@ class EmotionalSnapshot extends Model
         'hour_of_day',
     ];
 
+        // Encrypt intensity, tone, topics
+        public function setIntensityAttribute($value)
+        {
+            $this->attributes['intensity'] = \App\Support\Encryption::encrypt($value);
+        }
+        public function getIntensityAttribute($value)
+        {
+            return $value ? (float) \App\Support\Encryption::decrypt($value) : null;
+        }
+        public function setToneAttribute($value)
+        {
+            $this->attributes['tone'] = \App\Support\Encryption::encrypt($value);
+        }
+        public function getToneAttribute($value)
+        {
+            return $value ? (float) \App\Support\Encryption::decrypt($value) : null;
+        }
+        public function setTopicsAttribute($value)
+        {
+            $this->attributes['topics'] = \App\Support\Encryption::encrypt(json_encode($value));
+        }
+        public function getTopicsAttribute($value)
+        {
+            return $value ? json_decode(\App\Support\Encryption::decrypt($value), true) : [];
+        }
+
     protected $casts = [
         'topics' => 'array',
         'intensity' => 'float',

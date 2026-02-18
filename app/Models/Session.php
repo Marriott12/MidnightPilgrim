@@ -47,6 +47,32 @@ class Session extends Model
         'escalation_tone',
     ];
 
+        // Encrypt session_intensity, emotional_tone, detected_topics
+        public function setSessionIntensityAttribute($value)
+        {
+            $this->attributes['session_intensity'] = \App\Support\Encryption::encrypt($value);
+        }
+        public function getSessionIntensityAttribute($value)
+        {
+            return $value ? (float) \App\Support\Encryption::decrypt($value) : null;
+        }
+        public function setEmotionalToneAttribute($value)
+        {
+            $this->attributes['emotional_tone'] = \App\Support\Encryption::encrypt($value);
+        }
+        public function getEmotionalToneAttribute($value)
+        {
+            return $value ? (float) \App\Support\Encryption::decrypt($value) : null;
+        }
+        public function setDetectedTopicsAttribute($value)
+        {
+            $this->attributes['detected_topics'] = \App\Support\Encryption::encrypt(json_encode($value));
+        }
+        public function getDetectedTopicsAttribute($value)
+        {
+            return $value ? json_decode(\App\Support\Encryption::decrypt($value), true) : [];
+        }
+
     protected $casts = [
         'detected_topics' => 'array',
         'topics_avoided' => 'array',

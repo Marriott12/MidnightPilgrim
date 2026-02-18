@@ -231,7 +231,7 @@
                             <?php if(!empty($item['title'])): ?>
                                 <div style="font-weight: 400; color: #c4c4c4; margin-bottom: 0.5rem;"><?php echo e($item['title']); ?></div>
                             <?php endif; ?>
-                            <div class="item-excerpt" style="color: #999;"><?php echo e(Str::limit($item['body'] ?? '', 150)); ?></div>
+                            <div class="item-excerpt" style="color: #999; white-space: pre-wrap; word-wrap: break-word;"><?php echo e(Str::limit($item['body'] ?? '', 150)); ?></div>
                             <div class="item-full" style="color: #999; display: none;"><?php echo Str::markdown($item['body'] ?? ''); ?></div>
                             <?php if(!empty($item['tags']) && is_array($item['tags'])): ?>
                                 <div class="tags" style="margin-top: 0.75rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">

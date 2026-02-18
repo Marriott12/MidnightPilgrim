@@ -68,16 +68,18 @@ class DisciplineContract extends Model
     public function getCurrentWeekNumber(): int
     {
         $now = now($this->user_timezone ?? 'UTC');
-        
-        if ($now->lt($this->start_date)) {
+        $start = $this->start_date instanceof Carbon ? $this->start_date : Carbon::parse($this->start_date);
+        $end = $this->end_date instanceof Carbon ? $this->end_date : Carbon::parse($this->end_date);
+
+        if ($now->lt($start)) {
             return 0; // Contract hasn't started
         }
-        
-        if ($now->gt($this->end_date)) {
+
+        if ($now->gt($end)) {
             return $this->total_weeks + 1; // Contract ended
         }
 
-        return $this->start_date->diffInWeeks($now) + 1;
+        return $start->diffInWeeks($now) + 1;
     }
 
     /**
@@ -99,10 +101,12 @@ class DisciplineContract extends Model
         $baseLines = 14;
         
         // Check misses in current month
+
         $currentMonth = now()->month;
+        $start = $this->start_date instanceof Carbon ? $this->start_date : Carbon::parse($this->start_date);
         $missesThisMonth = collect($this->missed_weeks ?? [])
-            ->filter(function ($weekNumber) use ($currentMonth) {
-                $weekDate = $this->start_date->copy()->addWeeks($weekNumber - 1);
+            ->filter(function ($weekNumber) use ($currentMonth, $start) {
+                $weekDate = $start->copy()->addWeeks($weekNumber - 1);
                 return $weekDate->month === $currentMonth;
             })
             ->count();

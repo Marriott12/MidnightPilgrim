@@ -71,10 +71,10 @@ Three concentric layers enforce privacy:
    - Requires deliberate sharing ritual
    - **Hard rule**: Mental health artifacts (check-ins, interactions) can NEVER be shared
 
-**4. Local-First Forever**
-- Data stays on your machine
-- Exportable as pure Markdown ZIP
-- No cloud sync (by design)
+**4. Local-First, With Optional Encrypted Sync (2026)**
+- Data stays on your machine by default
+- **Opt-in encrypted cloud sync** is available for backup/sync (see below)
+- All sync is end-to-end encrypted; only you hold the key
 - No analytics, tracking, or telemetry
 - Works offline
 
@@ -104,6 +104,34 @@ Three concentric layers enforce privacy:
 
 ---
 
+
+## Security, Privacy, and Observability Improvements
+
+### Data Encryption
+- Sensitive data (e.g., session UUIDs, emotional snapshots) is encrypted at rest using Laravel's built-in encryption.
+- See `app/Support/Encryption.php` for utility methods.
+
+### Input Validation & Rate Limiting
+- All API endpoints use Laravel validation and custom middleware for input sanitization.
+- Rate limiting is enforced via `ThrottleRequests` middleware (see `app/Http/Middleware/ApiRateLimit.php`).
+
+### Logging & Privacy
+- Logs are sanitized to avoid storing sensitive user data.
+- See `app/Support/LogSanitizer.php` for implementation.
+
+### Error Tracking & Monitoring
+- Sentry integration is available (optional, opt-in via `.env`).
+- See `config/sentry.php` and `app/Providers/SentryServiceProvider.php`.
+
+---
+
+## Observability & Monitoring
+
+- Error tracking is available via Sentry (set `SENTRY_DSN` in `.env`)
+- For local debugging, use Laravel Telescope (install via Composer and register the service provider)
+- All errors and exceptions are logged with sensitive data sanitized
+
+---
 ## Installation
 
 ### Requirements
@@ -500,5 +528,134 @@ If something is unclear, you read the code.
 If something is missing, you add it (within the covenant).
 
 **This is intentional.**
+
+---
+
+## Developer Setup & Troubleshooting
+
+1. Clone the repository and run `composer install` and `npm install`.
+2. Copy `.env.example` to `.env` and set your `APP_KEY` and any API keys (see below).
+3. Run `php artisan key:generate` to generate a new app key.
+4. Ensure `storage/` and `bootstrap/cache/` are writable (`chmod -R 775 storage bootstrap/cache`).
+5. Run `php artisan migrate` to set up the database.
+6. Start the server with `php artisan serve` and build assets with `npm run build`.
+7. Run tests with `php artisan test`.
+
+### Common Issues
+- **Permission errors:** Ensure correct permissions on `storage/` and `bootstrap/cache/`.
+- **Missing .env:** Copy `.env.example` to `.env` and set required values.
+- **Database errors:** Ensure `database/database.sqlite` exists and is writable.
+- **AI not responding:** Set `OPENAI_API_KEY` in `.env` or fallback to rule-based responses.
+- **Frontend not updating:** Run `npm run build` after changes to JS/CSS.
+
+---
+
+## Error Tracking, Monitoring, and Secrets
+
+- **Error Tracking:**
+  - Sentry integration is available. Set `SENTRY_DSN` in `.env` to enable error reporting.
+  - All errors are sanitized before logging or reporting.
+- **Performance Monitoring:**
+  - Use Laravel Telescope for local debugging (install via Composer, see Laravel docs).
+- **Secrets Management:**
+  - All secrets (API keys, DB credentials) are stored in `.env` (never commit this file).
+  - Example keys:
+    - `OPENAI_API_KEY=sk-...` (for LLM integration)
+    - `SENTRY_DSN=...` (for error tracking)
+    - `APP_KEY=...` (Laravel encryption)
+  - See `.env.example` for all available environment variables.
+
+---
+
+## Optional Encrypted Cloud Sync
+
+Midnight Pilgrim now supports **optional, encrypted cloud sync** for users who wish to back up or synchronize their vault across devices. See the top of this README for the full covenant update and privacy guarantees.
+
+- **Opt-in only**: Disabled by default. You must explicitly enable it.
+- **End-to-end encrypted**: All content is encrypted client-side before leaving your device. Only you hold the decryption key.
+- **Privacy-preserving**: No analytics, tracking, or third-party sharing. No server can read your data.
+- **Strict boundaries**: Mental health data (`companion/`) and any content not marked `shareable` or `reflective` is **never** synced unless you explicitly include it.
+- **Local-first**: You may use Midnight Pilgrim entirely offline, forever. Cloud sync is a convenience, not a requirement.
+
+**How to enable:**
+1. Go to Settings → Cloud Sync
+2. Generate a sync key (store this securely!)
+3. Select which folders to sync (default: `vault/`, `quotes/`, `thoughts/`)
+4. Exclude any files/folders you wish
+5. You may disable and delete all cloud data at any time
+
+**Warning:** If you lose your sync key, your cloud data cannot be decrypted or recovered by anyone.
+
+---
+
+## Encrypted Cloud Sync Service
+
+The **Encrypted Cloud Sync Service** is a custom service that handles the encryption and decryption of content for users who enable cloud sync. It is not a standard Laravel service and must be imported manually.
+
+### Importing the Service
+
+To use the Encrypted Cloud Sync Service, you must import it into your application:
+
+```php
+use App\Services\EncryptedCloudSyncService;
+```
+
+### Using the Service
+
+The service provides methods for encrypting and decrypting content:
+
+```php
+$syncService = app(EncryptedCloudSyncService::class);
+
+// Encrypt content
+$encrypted = $syncService->encrypt($content);
+
+// Decrypt content
+$decrypted = $syncService->decrypt($encrypted);
+```
+
+### Configuration
+
+The service is configured in the `.env` file:
+
+```env
+ENCRYPTED_CLOUD_SYNC_ENABLED=true
+ENCRYPTED_CLOUD_SYNC_KEY=your_secret_key
+```
+
+### Security
+
+The service is secure and private. Only users who enable cloud sync can use it. The keys are stored in the `.env` file and are not exposed to the public.
+
+---
+
+## Local Analytics Dashboard (Opt-In)
+
+Midnight Pilgrim now includes an **opt-in, local-only analytics dashboard**. No data ever leaves your device. Analytics are disabled by default and must be enabled in settings. No engagement metrics, no tracking, no sharing. See `/analytics` for your private dashboard.
+
+---
+
+## Plugin & Extension API (Experimental)
+
+A new **plugin/extension API** is available for local-only plugins. All plugins must respect privacy boundaries and cannot access mental health data or export content without explicit user consent. See `/plugins` for the manager and upcoming documentation.
+
+---
+
+## Smarter AI Fallback
+
+If the main AI service is unavailable, you can now enable fallback options:
+- Local LLM (if installed)
+- Cached responses
+- Silence (default)
+
+Configure at `/ai-fallback`. No data is sent to third parties without your explicit consent.
+
+---
+
+## Streamlined Onboarding
+
+A new onboarding/first-run experience is available at `/onboarding`. This page introduces the philosophy, privacy boundaries, and available features (analytics, plugins, sync). No tracking, no pressure, no engagement metrics.
+
+---
 
 

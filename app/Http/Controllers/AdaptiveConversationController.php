@@ -7,13 +7,16 @@ use App\Models\Message;
 use App\Services\ConversationalEngineService;
 use App\Services\EmotionalPatternEngineService;
 use App\Services\NarrativeContinuityEngineService;
+use App\Services\DisciplineService;
 use App\Services\DisciplineContractService;
 use App\Services\DisciplineNotificationService;
 use App\Services\PatternTrackingService;
 use App\Services\FeatureButtonService;
+use App\Services\SessionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use App\Http\Requests\DeclarePlatformRequest;
 
 /**
  * AdaptiveConversationController
@@ -23,6 +26,8 @@ use Illuminate\Support\Facades\Log;
 class AdaptiveConversationController extends Controller
 {
     public function __construct(
+        private SessionService $sessionService,
+        private DisciplineService $disciplineService,
         private ConversationalEngineService $conversationalEngine,
         private EmotionalPatternEngineService $patternEngine,
         private NarrativeContinuityEngineService $narrativeEngine,
@@ -44,21 +49,14 @@ class AdaptiveConversationController extends Controller
             'mode' => 'sometimes|in:quiet,company',
         ]);
 
-        // Generate fingerprint
         $ip = $request->ip();
         $userAgent = $request->userAgent();
-        $fingerprint = $this->conversationalEngine->generateFingerprint($ip, $userAgent);
-
-        // Find or create profile
-        $profile = $this->conversationalEngine->findOrCreateProfile($fingerprint);
-
-        // Check for active session
-        $activeSession = $this->conversationalEngine->findActiveSession($fingerprint);
+        $fingerprint = $this->sessionService->generateFingerprint($ip, $userAgent);
+        $profile = $this->sessionService->findOrCreateProfile($fingerprint);
+        $activeSession = $this->sessionService->findActiveSession($fingerprint);
 
         if ($activeSession) {
-            // Existing session found
             $resumePrompt = $this->conversationalEngine->generateResumePrompt($activeSession);
-            
             return response()->json([
                 'session_uuid' => $activeSession->uuid,
                 'mode' => $activeSession->mode,
@@ -68,12 +66,9 @@ class AdaptiveConversationController extends Controller
             ]);
         }
 
-        // Create new session
         $mode = $request->input('mode', $profile->preferred_mode);
-        $session = $this->conversationalEngine->createSession($profile, $fingerprint, $mode);
-
-        // Increment session counter
-        $profile->incrementSessionCounter();
+        $session = $this->sessionService->createSession($profile, $fingerprint, $mode);
+        $this->sessionService->incrementSessionCounter($profile);
 
         return response()->json([
             'session_uuid' => $session->uuid,
@@ -100,27 +95,21 @@ class AdaptiveConversationController extends Controller
         $profile = $session->userProfile;
 
         if ($request->action === 'new') {
-            // Close old session
-            $session->status = 'closed';
-            $session->save();
-
-            // Create new session
-            $newSession = $this->conversationalEngine->createSession(
+            $this->sessionService->closeSession($session);
+            $newSession = $this->sessionService->createSession(
                 $profile,
                 $session->fingerprint,
                 $request->input('mode', $profile->preferred_mode)
             );
-
-            $profile->incrementSessionCounter();
-
+            $this->sessionService->incrementSessionCounter($profile);
             return response()->json([
                 'session_uuid' => $newSession->uuid,
                 'mode' => $newSession->mode,
                 'message_count' => 0,
             ]);
         }
-
         // Resume existing session
+        $this->sessionService->resumeSession($session);
         return response()->json([
             'session_uuid' => $session->uuid,
             'mode' => $session->mode,
@@ -129,23 +118,23 @@ class AdaptiveConversationController extends Controller
     }
 
     /**
-     * Declare writing platform (one-time, irreversible, auto-creates contract)
-     * 
+     * Declare platform and create contract
+     *
      * POST /api/discipline/declare-platform
-     * Body: { platform: string, timezone: string, start_date?: string }
+     * Body: { platform, timezone, start_date? }
      */
-    public function declarePlatform(Request $request)
+    public function declarePlatform(DeclarePlatformRequest $request)
     {
+        $ip = $request->ip();
+        $userAgent = $request->userAgent();
+        $fingerprint = $this->sessionService->generateFingerprint($ip, $userAgent);
+        $profile = $this->sessionService->findOrCreateProfile($fingerprint);
+
         $request->validate([
             'platform' => 'required|string|max:255',
             'timezone' => 'required|timezone',
             'start_date' => 'sometimes|date|after_or_equal:today|before_or_equal:' . now()->addDays(7)->format('Y-m-d'),
         ]);
-
-        $ip = $request->ip();
-        $userAgent = $request->userAgent();
-        $fingerprint = $this->conversationalEngine->generateFingerprint($ip, $userAgent);
-        $profile = $this->conversationalEngine->findOrCreateProfile($fingerprint);
 
         // Check if platform already declared
         if ($profile->hasDeclaredPlatform()) {
@@ -166,7 +155,7 @@ class AdaptiveConversationController extends Controller
                 ? Carbon::parse($request->start_date)
                 : Carbon::now()->addDays(7); // Default: start in 7 days
 
-            $contract = $this->disciplineContract->initializeContract($profile, $request->timezone, $startDate);
+            $contract = $this->disciplineService->initializeContract($profile, $request->timezone, $startDate);
 
             return response()->json([
                 'success' => true,
@@ -175,8 +164,8 @@ class AdaptiveConversationController extends Controller
                 'platform_locked' => true,
                 'contract' => [
                     'id' => $contract->id,
-                    'start_date' => $contract->start_date->toDateString(),
-                    'end_date' => $contract->end_date->toDateString(),
+                    'start_date' => $contract->start_date instanceof \Carbon\Carbon ? $contract->start_date->toDateString() : \Carbon\Carbon::parse($contract->start_date)->toDateString(),
+                    'end_date' => $contract->end_date instanceof \Carbon\Carbon ? $contract->end_date->toDateString() : \Carbon\Carbon::parse($contract->end_date)->toDateString(),
                     'total_weeks' => $contract->total_weeks,
                     'status' => $contract->status,
                 ],
@@ -286,26 +275,10 @@ class AdaptiveConversationController extends Controller
         $request->validate([
             'session_uuid' => 'required|uuid',
         ]);
-
         $session = Session::where('uuid', $request->session_uuid)->firstOrFail();
         $profile = $session->userProfile;
-
-        // Create emotional snapshot
-        $this->patternEngine->createSnapshot($session);
-
-        // Update profile metrics
-        $this->patternEngine->updateProfileMetrics($profile, $session);
-
-        // Close session
-        $session->close();
-
-        // Check if reflection is needed
-        $reflection = $this->narrativeEngine->generateReflectionIfNeeded($profile);
-
-        return response()->json([
-            'success' => true,
-            'reflection_available' => $reflection !== null,
-        ]);
+        $result = $this->sessionService->endSession($session, $profile, $this->patternEngine, $this->narrativeEngine);
+        return response()->json($result);
     }
 
     /**
@@ -319,10 +292,8 @@ class AdaptiveConversationController extends Controller
         $request->validate([
             'session_uuid' => 'required|uuid',
         ]);
-
         $session = Session::where('uuid', $request->session_uuid)->firstOrFail();
-        $this->conversationalEngine->deleteSession($session);
-
+        $this->sessionService->deleteSession($session);
         return response()->json(['success' => true]);
     }
 
@@ -335,10 +306,8 @@ class AdaptiveConversationController extends Controller
     {
         $ip = $request->ip();
         $userAgent = $request->userAgent();
-        $fingerprint = $this->conversationalEngine->generateFingerprint($ip, $userAgent);
-
-        $this->conversationalEngine->deleteUserProfile($fingerprint);
-
+        $fingerprint = $this->sessionService->generateFingerprint($ip, $userAgent);
+        $this->sessionService->deleteUserProfile($fingerprint);
         return response()->json(['success' => true]);
     }
 
@@ -452,27 +421,42 @@ class AdaptiveConversationController extends Controller
      */
     private function generateAIResponse(string $systemPrompt, array $messages): string
     {
-        // PLACEHOLDER: Integrate with your AI service here
-        // Example for OpenAI:
-        
-        /*
-        $openai = new OpenAI(config('services.openai.key'));
-        
-        $response = $openai->chat()->create([
-            'model' => 'gpt-4',
-            'messages' => array_merge(
-                [['role' => 'system', 'content' => $systemPrompt]],
-                $messages
-            ),
-            'temperature' => 0.8,
-            'max_tokens' => 500,
-        ]);
-        
-        return $response->choices[0]->message->content;
-        */
-
-        // For now, return a placeholder
-        return "This is a placeholder response. Integrate your AI service in the generateAIResponse method.";
+        // Integrate with OpenAI GPT-4 if API key is set, else fallback
+        $apiKey = env('OPENAI_API_KEY');
+        if ($apiKey) {
+            try {
+                $client = new \GuzzleHttp\Client([
+                    'base_uri' => 'https://api.openai.com/v1/',
+                    'timeout'  => 15.0,
+                ]);
+                $response = $client->post('chat/completions', [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $apiKey,
+                        'Content-Type' => 'application/json',
+                    ],
+                    'json' => [
+                        'model' => 'gpt-4',
+                        'messages' => array_merge([
+                            ['role' => 'system', 'content' => $systemPrompt]
+                        ], $messages),
+                        'temperature' => 0.8,
+                        'max_tokens' => 500,
+                    ],
+                ]);
+                $data = json_decode($response->getBody(), true);
+                if (isset($data['choices'][0]['message']['content'])) {
+                    return trim($data['choices'][0]['message']['content']);
+                }
+            } catch (\Throwable $e) {
+                Log::error('AI API error: ' . $e->getMessage(), \App\Support\LogSanitizer::sanitize([
+                    'systemPrompt' => $systemPrompt,
+                    'messages' => $messages,
+                ]));
+                // Fallback below
+            }
+        }
+        // Fallback: rule-based or static response
+        return "(AI unavailable) What would you say to yourself if you were listening with compassion?";
     }
 
     // ==========================================
@@ -521,13 +505,13 @@ class AdaptiveConversationController extends Controller
             ], 400);
         }
 
-        $contract = $this->disciplineContract->initializeContract($profile);
+        $contract = $this->disciplineService->initializeContract($profile);
 
         return response()->json([
             'success' => true,
             'contract' => [
-                'start_date' => $contract->start_date->toDateString(),
-                'end_date' => $contract->end_date->toDateString(),
+                'start_date' => $contract->start_date instanceof \Carbon\Carbon ? $contract->start_date->toDateString() : \Carbon\Carbon::parse($contract->start_date)->toDateString(),
+                'end_date' => $contract->end_date instanceof \Carbon\Carbon ? $contract->end_date->toDateString() : \Carbon\Carbon::parse($contract->end_date)->toDateString(),
                 'total_weeks' => $contract->total_weeks,
             ],
         ]);
@@ -542,11 +526,9 @@ class AdaptiveConversationController extends Controller
     {
         $ip = $request->ip();
         $userAgent = $request->userAgent();
-        $fingerprint = $this->conversationalEngine->generateFingerprint($ip, $userAgent);
-        $profile = $this->conversationalEngine->findOrCreateProfile($fingerprint);
-
-        $status = $this->disciplineContract->getContractStatus($profile);
-
+        $fingerprint = $this->sessionService->generateFingerprint($ip, $userAgent);
+        $profile = $this->sessionService->findOrCreateProfile($fingerprint);
+        $status = $this->disciplineService->getContractStatus($profile);
         return response()->json($status);
     }
 
@@ -568,18 +550,15 @@ class AdaptiveConversationController extends Controller
         ], [
             'self_assessment.*.min' => 'Self-assessment responses must be at least 20 characters. Be specific.',
         ]);
-
         $ip = $request->ip();
         $userAgent = $request->userAgent();
-        $fingerprint = $this->conversationalEngine->generateFingerprint($ip, $userAgent);
-        $profile = $this->conversationalEngine->findOrCreateProfile($fingerprint);
-
-        $result = $this->disciplineContract->submitPoem(
+        $fingerprint = $this->sessionService->generateFingerprint($ip, $userAgent);
+        $profile = $this->sessionService->findOrCreateProfile($fingerprint);
+        $result = $this->disciplineService->submitPoem(
             $profile,
-            $request->content,
+            $request->input('content'),
             $request->self_assessment
         );
-
         return response()->json($result);
     }
 
@@ -597,7 +576,7 @@ class AdaptiveConversationController extends Controller
         ]);
 
         $poem = \App\Models\Poem::findOrFail($request->poem_id);
-        $result = $this->disciplineContract->publishPoem($poem, $request->platform);
+        $result = $this->disciplineService->publishPoem($poem, $request->platform);
 
         return response()->json($result);
     }
@@ -682,9 +661,9 @@ class AdaptiveConversationController extends Controller
         $poem = \App\Models\Poem::findOrFail($request->poem_id);
         $profile = $poem->userProfile;
 
-        $result = $this->disciplineContract->submitPoem(
+        $result = $this->disciplineService->submitPoem(
             $profile,
-            $request->content,
+            $request->input('content'),
             $poem->self_assessment ?? [],
             $request->revision_notes,
             $request->version_number
@@ -724,8 +703,8 @@ class AdaptiveConversationController extends Controller
         return response()->json([
             'active' => true,
             'logs' => $logs,
-            'contract_start' => $contract->start_date->toIso8601String(),
-            'contract_end' => $contract->end_date->toIso8601String(),
+            'contract_start' => $contract->start_date instanceof \Carbon\Carbon ? $contract->start_date->toIso8601String() : \Carbon\Carbon::parse($contract->start_date)->toIso8601String(),
+            'contract_end' => $contract->end_date instanceof \Carbon\Carbon ? $contract->end_date->toIso8601String() : \Carbon\Carbon::parse($contract->end_date)->toIso8601String(),
             'current_week' => $contract->getCurrentWeekNumber(),
             'total_weeks' => $contract->total_weeks,
         ]);
@@ -804,15 +783,14 @@ class AdaptiveConversationController extends Controller
             ->where('week_number', $request->week_number)
             ->first();
 
-        if ($complianceLog) {
-            $complianceLog->reflection_done = true;
+        if ($complianceLog instanceof \App\Models\ComplianceLog) {
             $complianceLog->save();
         }
 
         // Save reflection to archive
         try {
             $archiveService = app(\App\Services\ArchiveEnforcementService::class);
-            $archiveService->createReflection($contract, $request->week_number, $request->content);
+            $archiveService->createReflection($contract, $request->input('week_number'), $request->input('content'));
 
             return response()->json([
                 'success' => true,

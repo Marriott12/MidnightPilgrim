@@ -11,6 +11,22 @@ class AdaptiveConversationSystem {
         this.isInitialized = false;
         this.messageHistory = [];
         this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        this.loadingIndicator = document.getElementById('loading-indicator');
+        this.errorBanner = document.getElementById('error-banner');
+    }
+
+    showLoading(show = true) {
+        if (this.loadingIndicator) {
+            this.loadingIndicator.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    showError(message) {
+        if (this.errorBanner) {
+            this.errorBanner.textContent = message;
+            this.errorBanner.style.display = 'block';
+            setTimeout(() => { this.errorBanner.style.display = 'none'; }, 5000);
+        }
     }
 
     /**
@@ -46,7 +62,7 @@ class AdaptiveConversationSystem {
         if (!this.isInitialized || !this.sessionUuid) {
             throw new Error('Session not initialized');
         }
-
+        this.showLoading(true);
         try {
             const response = await fetch('/api/conversation/message', {
                 method: 'POST',
@@ -60,17 +76,15 @@ class AdaptiveConversationSystem {
                     mode: this.mode,
                 }),
             });
-
             const data = await response.json();
-            
-            // Add messages to history
             this.messageHistory.push({ role: 'user', content: message });
             this.messageHistory.push({ role: 'assistant', content: data.message });
-
             return data;
         } catch (error) {
-            console.error('Failed to send message:', error);
+            this.showError('Failed to send message. Please try again.');
             throw error;
+        } finally {
+            this.showLoading(false);
         }
     }
 

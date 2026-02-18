@@ -72,7 +72,8 @@ class DisciplineContractService
     private function generateComplianceLogs(DisciplineContract $contract): void
     {
         for ($week = 1; $week <= $contract->total_weeks; $week++) {
-            $weekStart = $contract->start_date->copy()->addWeeks($week - 1);
+            $startDate = $contract->start_date instanceof \Carbon\Carbon ? $contract->start_date : \Carbon\Carbon::parse($contract->start_date);
+            $weekStart = $startDate->copy()->addWeeks($week - 1);
             $deadline = $weekStart->copy()->addDays(6)->setTime(20, 0);
 
             ComplianceLog::create([
@@ -126,7 +127,7 @@ class DisciplineContractService
             'poems_missed' => $contract->poems_missed,
             'monthly_releases' => $contract->monthly_releases,
             'monthly_release_due' => $contract->isMonthlyReleaseDue(),
-            'in_recovery_window' => $complianceLog ? $complianceLog->isInRecoveryWindow() : false,
+            'in_recovery_window' => ($complianceLog instanceof \App\Models\ComplianceLog) ? $complianceLog->isInRecoveryWindow() : false,
         ];
     }
 
@@ -267,7 +268,7 @@ class DisciplineContractService
             ->where('week_number', $currentWeek)
             ->first();
 
-        if ($complianceLog) {
+        if ($complianceLog instanceof ComplianceLog) {
             $complianceLog->on_time = $poem->isOnTime();
             $complianceLog->revision_done = $versionNumber > 1;
             $complianceLog->constraint_followed = empty($violations) || !$this->constraintValidator->hasCriticalViolations($violations);
@@ -350,7 +351,9 @@ class DisciplineContractService
                     ->exists();
 
                 if (!$submitted) {
-                    $complianceLog->markMissed();
+                    if ($complianceLog instanceof \App\Models\ComplianceLog) {
+                        $complianceLog->markMissed();
+                    }
                     $contract->recordMiss($week);
 
                     $results[] = [
@@ -362,8 +365,10 @@ class DisciplineContractService
                 }
             } elseif (now()->gt($deadline)) {
                 // In recovery window
-                $complianceLog->status = 'in_recovery';
-                $complianceLog->save();
+                if ($complianceLog instanceof \App\Models\ComplianceLog) {
+                    $complianceLog->status = 'in_recovery';
+                    $complianceLog->save();
+                }
 
                 $results[] = [
                     'week' => $week,
@@ -672,8 +677,10 @@ class DisciplineContractService
     public function checkMonthlyReleaseDeadlines(): void
     {
         $contracts = DisciplineContract::where('status', 'active')->get();
-        
         foreach ($contracts as $contract) {
+            if (!$contract instanceof DisciplineContract) {
+                $contract = DisciplineContract::find($contract->id);
+            }
             $currentMonth = now($contract->user_timezone)->month;
             $currentYear = now($contract->user_timezone)->year;
             $isLastDayOfMonth = now($contract->user_timezone)->isLastOfMonth();
@@ -693,8 +700,7 @@ class DisciplineContractService
             if (!$releasedThisMonth) {
                 // Record missed monthly release
                 $contract->recordMissedMonthlyRelease();
-                
-                \Log::info("Monthly release missed for contract {$contract->id} in month {$currentMonth}/{$currentYear}");
+                Log::info("Monthly release missed for contract {$contract->id} in month {$currentMonth}/{$currentYear}");
             }
         }
     }
@@ -709,6 +715,9 @@ class DisciplineContractService
             ->get();
 
         foreach ($contracts as $contract) {
+            if (!$contract instanceof DisciplineContract) {
+                $contract = DisciplineContract::find($contract->id);
+            }
             $this->finalizeContract($contract);
         }
     }
@@ -725,14 +734,14 @@ class DisciplineContractService
         try {
             $this->archiveService->storeFinalReport($contract, $report);
         } catch (\Exception $e) {
-            \Log::error("Failed to store final report for contract {$contract->id}: " . $e->getMessage());
+            Log::error("Failed to store final report for contract {$contract->id}: " . $e->getMessage());
         }
 
         // Update contract status
         $contract->status = 'completed';
         $contract->save();
 
-        \Log::info("Contract {$contract->id} finalized. Total submissions: {$contract->poems_submitted}, Misses: {$contract->poems_missed}");
+        Log::info("Contract {$contract->id} finalized. Total submissions: {$contract->poems_submitted}, Misses: {$contract->poems_missed}");
     }
 
     /**
@@ -740,36 +749,32 @@ class DisciplineContractService
      */
     private function generateFinalReport(DisciplineContract $contract): array
     {
-        $profile = $contract->userProfile;
-        $logs = $contract->complianceLogs;
-
-        $onTimeCount = $logs->where('on_time', true)->count();
-        $missedCount = $contract->poems_missed;
-        $completionRate = $contract->total_weeks > 0 
-            ? round(($contract->poems_submitted / $contract->total_weeks) * 100, 2) 
-            : 0;
-
-        $constraintViolations = $contract->poems()
-            ->whereNotNull('constraint_violations')
-            ->get()
-            ->sum(fn($poem) => is_array($poem->constraint_violations) ? count($poem->constraint_violations) : 0);
-
+        $profile = $contract->userProfile ?? $contract->profile ?? null;
+        $start = $contract->start_date instanceof Carbon ? $contract->start_date : Carbon::parse($contract->start_date);
+        $end = $contract->end_date instanceof Carbon ? $contract->end_date : Carbon::parse($contract->end_date);
         return [
             'contract_id' => $contract->id,
-            'user_profile_id' => $profile->id,
-            'start_date' => $contract->start_date->toDateString(),
-            'end_date' => $contract->end_date->toDateString(),
+            'user_profile_id' => $contract->user_profile_id,
+            'start_date' => $start->toDateString(),
+            'end_date' => $end->toDateString(),
             'total_weeks' => $contract->total_weeks,
             'poems_submitted' => $contract->poems_submitted,
-            'poems_missed' => $missedCount,
-            'on_time_count' => $onTimeCount,
-            'late_count' => $contract->poems_submitted - $onTimeCount,
-            'completion_rate' => $completionRate . '%',
+            'poems_missed' => $contract->poems_missed,
+            'on_time_count' => $contract->complianceLogs()->where('on_time', true)->count(),
+            'late_count' => $contract->poems_submitted - $contract->complianceLogs()->where('on_time', true)->count(),
+            'completion_rate' => $contract->total_weeks > 0 
+                ? round(($contract->poems_submitted / $contract->total_weeks) * 100, 2) 
+                : 0,
+
             'monthly_releases' => $contract->monthly_releases,
             'monthly_releases_missed' => $contract->monthly_releases_missed,
-            'constraint_violations_total' => $constraintViolations,
+            'constraint_violations_total' => $contract->poems()
+                ->whereNotNull('constraint_violations')
+                ->get()
+                ->sum(fn($poem) => is_array($poem->constraint_violations) ? count($poem->constraint_violations) : 0),
+
             'final_penalty_status' => $contract->getMinimumLines() > 14 ? 'active' : 'none',
-            'platform' => $profile->declared_platform,
+            'platform' => $profile ? $profile->declared_platform : null,
             'finalized_at' => now()->toIso8601String(),
         ];
     }
@@ -819,19 +824,21 @@ class DisciplineContractService
 
         // Attempt HTTP verification
         try {
-            $response = \Http::timeout(10)->get($url);
-
+            $response = Http::timeout(10)->get($url);
+            if (!($response instanceof \Illuminate\Http\Client\Response)) {
+                return [
+                    'valid' => false,
+                    'reason' => 'Unexpected HTTP response type',
+                ];
+            }
             if ($response->status() !== 200) {
                 return [
                     'valid' => false,
                     'reason' => "URL returned HTTP {$response->status()}. Content may not be public.",
                 ];
             }
-
-            // Check for common "not found" indicators in HTML
             $body = strtolower($response->body());
             $notFoundIndicators = ['404', 'not found', 'page not found', 'does not exist'];
-            
             foreach ($notFoundIndicators as $indicator) {
                 if (str_contains($body, $indicator) && strlen($body) < 5000) {
                     return [
@@ -840,7 +847,6 @@ class DisciplineContractService
                     ];
                 }
             }
-
             return [
                 'valid' => true,
                 'verified_at' => now()->toIso8601String(),

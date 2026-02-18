@@ -57,6 +57,20 @@
             flex-direction: column;
         }
 
+
+    </style>
+</head>
+<body>
+    <nav>
+        <!-- Navigation content here -->
+    </nav>
+    <div class="container" aria-label="Conversation container">
+        <div id="loading-indicator" style="display:none;text-align:center;margin:1rem 0;" aria-live="polite" aria-busy="true">Loading…</div>
+        <div id="error-banner" style="display:none;color:#ff6b6b;text-align:center;margin:1rem 0;" role="alert"></div>
+        <!-- Rest of conversation UI here -->
+    </div>
+</body>
+
         /* Resume gate */
         .resume-gate {
             text-align: center;
@@ -365,11 +379,13 @@
         </div>
     </nav>
 
-    <div class="container">
+    <div class="container" aria-label="Conversation container">
+        <div id="loading-indicator" style="display:none;text-align:center;margin:1rem 0;" aria-live="polite" aria-busy="true">Loading…</div>
+        <div id="error-banner" style="display:none;color:#ff6b6b;text-align:center;margin:1rem 0;" role="alert"></div>
         @if($hasActiveSession)
             <!-- Active conversation -->
-            <div class="conversation-wrapper">
-                <div class="messages" id="messages">
+            <div class="conversation-wrapper" aria-live="polite">
+                <div class="messages" id="messages" tabindex="0" aria-label="Conversation messages">
                     @if($messages->isEmpty())
                         <div class="empty-state">
                             <h2>{{ $session->mode === 'quiet' ? 'Quiet mode' : 'Company mode' }}</h2>
@@ -377,7 +393,7 @@
                         </div>
                     @else
                         @foreach($messages as $message)
-                            <div class="message {{ $message->role }}">
+                            <div class="message {{ $message->role }}" aria-label="{{ $message->role }} message">
                                 <div class="message-content">{{ $message->content }}</div>
                                 <div class="message-time">{{ $message->created_at->diffForHumans() }}</div>
                             </div>
@@ -387,24 +403,24 @@
 
                 <div class="input-area">
                     <div class="controls">
-                        <div class="mode-switch">
-                            <button type="button" class="mode-btn {{ $session->mode === 'quiet' ? 'active' : '' }}" data-mode="quiet">Quiet</button>
-                            <button type="button" class="mode-btn {{ $session->mode === 'company' ? 'active' : '' }}" data-mode="company">Company</button>
+                        <div class="mode-switch" role="radiogroup" aria-label="Conversation mode">
+                            <button type="button" class="mode-btn {{ $session->mode === 'quiet' ? 'active' : '' }}" data-mode="quiet" aria-checked="{{ $session->mode === 'quiet' ? 'true' : 'false' }}" role="radio">Quiet</button>
+                            <button type="button" class="mode-btn {{ $session->mode === 'company' ? 'active' : '' }}" data-mode="company" aria-checked="{{ $session->mode === 'company' ? 'true' : 'false' }}" role="radio">Company</button>
                         </div>
 
                         <div class="special-buttons">
-                            <button type="button" id="random-btn">Random</button>
-                            <button type="button" id="thoughts-btn">Thoughts</button>
-                            <button type="button" id="adjacent-btn">Adjacent</button>
-                            <button type="button" id="leave-btn" class="leave-button">Leave Quietly</button>
+                            <button type="button" id="random-btn" aria-label="Random prompt">Random</button>
+                            <button type="button" id="thoughts-btn" aria-label="Thoughts">Thoughts</button>
+                            <button type="button" id="adjacent-btn" aria-label="Adjacent theme">Adjacent</button>
+                            <button type="button" id="leave-btn" class="leave-button" aria-label="Leave Quietly">Leave Quietly</button>
                         </div>
                     </div>
 
                     <div class="input-wrapper">
-                        <textarea id="message-input" placeholder="Type or be silent..."></textarea>
+                        <textarea id="message-input" placeholder="Type or be silent..." aria-label="Message input" rows="4"></textarea>
                     </div>
 
-                    <button type="button" class="send-button" id="send-btn">Send</button>
+                    <button type="button" class="send-button" id="send-btn" aria-label="Send message">Send</button>
                 </div>
             </div>
         @else
@@ -433,6 +449,26 @@
         <div class="modal-content">
             <button class="modal-close" type="button">&times;</button>
             <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Help modal -->
+    <button id="help-btn" aria-label="Show help" style="position:fixed;top:1.5rem;right:1.5rem;z-index:1100;background:#222;color:#fff;border:none;padding:0.5rem 1rem;border-radius:4px;cursor:pointer;">?</button>
+    <div class="modal" id="help-modal" aria-modal="true" role="dialog" tabindex="-1">
+        <div class="modal-content" style="max-width:600px;">
+            <button class="modal-close" type="button" aria-label="Close help">&times;</button>
+            <div id="help-body">
+                <h2 style="margin-top:0;">Welcome to Midnight Pilgrim</h2>
+                <ul style="margin:1.5rem 0 1rem 1.5rem;padding:0;line-height:1.7;">
+                    <li><b>Silence is valid.</b> You never have to reply.</li>
+                    <li><b>Private by default.</b> Nothing is shared or tracked.</li>
+                    <li><b>Modes:</b> Quiet (minimal) or Company (gentle).</li>
+                    <li><b>Feature buttons:</b> Random, Thoughts, Adjacent for prompts and reflection.</li>
+                    <li><b>Delete anytime:</b> Use "Leave Quietly" to erase your session.</li>
+                    <li><b>Accessibility:</b> Fully keyboard and screen reader friendly.</li>
+                </ul>
+                <p style="color:#888;font-size:0.95rem;">For more, see the <a href="/read" style="color:#8b8baf;">Read</a> and <a href="/waystone" style="color:#8b8baf;">Waystone</a> sections.</p>
+            </div>
         </div>
     </div>
 
@@ -628,6 +664,21 @@
         modal.addEventListener('click', function(e) {
             if (e.target === modal) {
                 modal.classList.remove('active');
+            }
+        });
+
+        // Help modal
+        document.getElementById('help-btn').addEventListener('click', function() {
+            const modal = document.getElementById('help-modal');
+            modal.classList.add('active');
+            modal.focus();
+        });
+        document.querySelector('#help-modal .modal-close').addEventListener('click', function() {
+            document.getElementById('help-modal').classList.remove('active');
+        });
+        document.getElementById('help-modal').addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                this.classList.remove('active');
             }
         });
     </script>

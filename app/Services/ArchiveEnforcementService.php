@@ -6,6 +6,7 @@ use App\Models\Poem;
 use App\Models\DisciplineContract;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\File;
+use Carbon\Carbon;
 
 /**
  * ArchiveEnforcementService - FILE SYSTEM DISCIPLINE
@@ -23,10 +24,12 @@ class ArchiveEnforcementService
      */
     public function getContractPath(DisciplineContract $contract): string
     {
-        $start = $contract->start_date->format('M_d');
-        $end = $contract->end_date->format('M_d_Y');
-        
-        return "{$this->basePath}/Midnight_Pilgrim_Contract_{$start}_{$end}";
+        // Ensure Carbon instance for date
+        $start = $contract->start_date instanceof \Carbon\Carbon ? $contract->start_date : \Carbon\Carbon::parse($contract->start_date);
+        $end = $contract->end_date instanceof \Carbon\Carbon ? $contract->end_date : \Carbon\Carbon::parse($contract->end_date);
+        $startStr = $start->format('M_d');
+        $endStr = $end->format('M_d_Y');
+        return "{$this->basePath}/Midnight_Pilgrim_Contract_{$startStr}_{$endStr}";
     }
 
     /**
@@ -224,11 +227,13 @@ MD;
      */
     private function createArchiveReadme(string $contractPath, DisciplineContract $contract): void
     {
+        $start = $contract->start_date instanceof \Carbon\Carbon ? $contract->start_date : \Carbon\Carbon::parse($contract->start_date);
+        $end = $contract->end_date instanceof \Carbon\Carbon ? $contract->end_date : \Carbon\Carbon::parse($contract->end_date);
         $readme = <<<MD
 # Midnight Pilgrim Discipline Contract Archive
 
-**Start Date:** {$contract->start_date->toDateString()}
-**End Date:** {$contract->end_date->toDateString()}
+**Start Date:** {$start->toDateString()}
+**End Date:** {$end->toDateString()}
 **Total Weeks:** {$contract->total_weeks}
 
 ## Archive Structure
@@ -262,8 +267,7 @@ Each week contains:
 - Missed monthly release → 2 releases required following month
 
 MD;
-
-        $this->writeFile("{$contractPath}/README.md", $readme);
+        Storage::put("{$contractPath}/README.md", $readme);
     }
 
     /**
@@ -321,7 +325,7 @@ MD;
      */
     public function storeFinalReport(DisciplineContract $contract, array $report): void
     {
-        $archiveRoot = $this->getArchiveRoot($contract);
+        $archiveRoot = $this->getContractPath($contract);
         $reportPath = "{$archiveRoot}/FINAL_REPORT.md";
 
         // Format report as markdown
